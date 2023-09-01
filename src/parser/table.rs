@@ -110,54 +110,58 @@ fn normalize(text: String) -> String {
 
 #[cfg(test)]
 mod tests {
-  use crate::parser::table::*;
+  use super::*;
 
-  #[test]
-  fn simple() {
-    const HTML: &str = r#"
+  macro_rules! table {
+    [$(($($v: literal),*)),*] => {
+      Some(Table { rows: vec![$(vec![$($v.to_string(),)*],)*] })
+    };
+    [$([$(($($v: literal),*)),*]),*] => {
+      Some(vec![$(Table { rows: vec![$(vec![$($v.to_string(),)*],)*] },)*])
+    };
+  }
+
+  const ONE_TABLE_TWO_ROWS: &str = r#"
     <table>
         <tr><th>Header</th><th>Value</th></tr>
         <tr><td>A</td><td>B</td></tr>
-    </table>
-  "#;
-    let expected = Some(vec![vec!["Header".to_string(), "Value".to_string()], vec!["A".to_string(), "B".to_string()]]);
-    let result = parse_first(HTML);
-    assert_eq!(expected, result.map(|r| r.rows));
-  }
+    </table>"#;
 
-  #[test]
-  fn multiple_tables() {
-    const HTML: &str = r#"
-    <table>
+  const SPECIAL_SYMBOL: &str = r#"<table>
+        <tr><th>A</th><th>&lt;</th></tr>
+    </table>"#;
+
+  const TWO_TABLES: &str = r#"<table>
         <tr><th>Header</th><th>Value</th></tr>
         <tr><td>A</td><td>B</td></tr>
     </table>
     <table>
         <tr><th>Header</th><th>Value</th></tr>
         <tr><td>A</td><td>B</td></tr>
-    </table>
-  "#;
-    let expected = Some(vec![
-      Table { rows: vec![vec!["Header".to_string(), "Value".to_string()], vec!["A".to_string(), "B".to_string()]] },
-      Table { rows: vec![vec!["Header".to_string(), "Value".to_string()], vec!["A".to_string(), "B".to_string()]] },
-    ]);
-    let result = parse_all(HTML);
-    assert_eq!(expected, result);
+    </table>"#;
+
+  #[rstest]
+  #[case(ONE_TABLE_TWO_ROWS, table![("Header", "Value"), ("A", "B")])]
+  #[case(SPECIAL_SYMBOL, table![("A", "<")])]
+  #[case("<table>Hey</table>", None)]
+  #[case("<div>Hi</div>", None)]
+  fn simple(#[case] html: &str, #[case] expected: Option<Table>) {
+    assert_eq!(expected, parse_first(html));
   }
 
-  #[test]
-  fn no_table() {
-    const HTML: &str = "<div>Hey</div>";
-    let expected = None;
-    let result = parse_all(HTML);
-    assert_eq!(expected, result);
+  #[rstest]
+  #[case(TWO_TABLES, table![[("Header", "Value"), ("A", "B")], [("Header", "Value"), ("A", "B")]])]
+  #[case("<div>Hi</div>", None)]
+  fn multiple(#[case] html: &str, #[case] expected: Option<Vec<Table>>) {
+    assert_eq!(expected, parse_all(html));
   }
 
-  #[test]
-  fn no_rows() {
-    const HTML: &str = "<table>Hey</table>";
-    let expected = None;
-    let result = parse_first(HTML);
-    assert_eq!(expected, result.map(|r| r.rows));
+  #[rstest]
+  #[case("&lt;", "<")]
+  #[case("&nbsp;  af&lt;", " af<")]
+  #[case("f&nbsp;f", "f f")]
+  #[case("f  f", "f f")]
+  fn special_symbols(#[case] input: String, #[case] expected: &str) {
+    assert_eq!(normalize(input), expected);
   }
 }
