@@ -1,2 +1,4 @@
 pub mod parser;
-pub mod snapshot;
+mod snapshot;
+
+pub use snapshot::*;

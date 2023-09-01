@@ -11,3 +11,4 @@ tl = "0.7.7"
 
 log = "0.4.20"
 serde = { version = "1.0.188", features = ["derive"] }
+aho-corasick = "1.0.5"
