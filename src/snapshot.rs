@@ -1,12 +1,12 @@
-#![allow(unused)]
+use crate::utils::time::*;
 
 use std::slice::Iter;
 
-#[derive(Default, Debug)]
-pub struct Snapshot<'s> {
+#[derive(Debug)]
+pub struct Snapshot {
   id: i32,
-  date: (),
-  groups: &'s [Group],
+  date: DateTime,
+  groups: Vec<Group>,
 }
 
 #[derive(Default, Debug)]
@@ -31,7 +31,7 @@ pub trait Id {
   fn id(&self) -> i32;
 }
 
-impl Id for Snapshot<'_> {
+impl Id for Snapshot {
   fn compute_id(self) -> Self {
     let id = 1;
     Self { id, ..self }
@@ -64,9 +64,9 @@ impl Id for Lecture {
   }
 }
 
-impl<'s> Snapshot<'s> {
-  pub fn new(date: (), groups: &'s [Group]) -> Self {
-    Self { date, groups, ..Default::default() }.compute_id()
+impl Snapshot {
+  pub fn new(date: DateTime, groups: Vec<Group>) -> Self {
+    Self { id: 0, date, groups }.sort_groups().compute_id()
   }
 
   pub fn group(&self, name: &str) -> Option<&Group> {
@@ -77,8 +77,16 @@ impl<'s> Snapshot<'s> {
     self.groups.iter()
   }
 
-  pub fn date(&self) {
+  pub fn date(&self) -> DateTime {
     self.date
+  }
+
+  fn sort_groups(mut self) -> Self {
+    self.groups.iter_mut().for_each(|g| {
+      g.lectures.sort_by_key(|g| g.subgroup.clone());
+      g.lectures.sort_by(|a, b| a.order.cmp(&b.order));
+    });
+    self
   }
 }
 
@@ -91,27 +99,23 @@ impl Group {
     &self.name
   }
 
+  pub fn has_lectures(&self) -> bool {
+    !self.lectures.is_empty()
+  }
+
   pub fn set_lectures(&mut self, lectures: Vec<Lecture>) {
     self.lectures = lectures
   }
 }
 
 impl Lecture {
-  pub fn new<S: AsRef<str> + Into<Box<str>>>(
-    order: Option<S>,
-    name: S,
-    classroom: Option<S>,
-    subgroup: Option<S>,
-    teacher: Option<S>,
+  pub fn new(
+    order: Option<Box<str>>,
+    name: Box<str>,
+    classroom: Option<Box<str>>,
+    subgroup: Option<Box<str>>,
+    teacher: Option<Box<str>>,
   ) -> Self {
-    Self {
-      id: 0,
-      order: order.map(|o| o.into()),
-      name: name.into(),
-      classroom: classroom.map(|c| c.into()),
-      subgroup: subgroup.map(|s| s.into()),
-      teacher: teacher.map(|t| t.into()),
-    }
-    .compute_id()
+    Self { id: 0, order, name, classroom, subgroup, teacher }.compute_id()
   }
 }
