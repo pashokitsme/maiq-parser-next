@@ -1,8 +1,7 @@
 pub mod error;
 pub mod parser;
-mod snapshot;
-
-pub use snapshot::*;
+pub mod snapshot;
+mod utils;
 
 #[macro_use]
 extern crate log;

@@ -20,12 +20,14 @@ macro_rules! impl_parse_exact {
   };
 }
 
+// todo: сделать parse_first_table и parse_last_table методами Table
+
 #[derive(Debug, PartialEq)]
 pub struct Table {
   pub rows: Vec<Vec<String>>,
 }
 
-pub fn parse_all(html: &str) -> Option<Vec<Table>> {
+pub fn parse_all_tables(html: &str) -> Option<Vec<Table>> {
   let dom = tl::parse(html, ParserOptions::default()).ok()?;
   let parser = dom.parser();
   let tables = dom.query_selector("table")?;
@@ -40,8 +42,8 @@ pub fn parse_all(html: &str) -> Option<Vec<Table>> {
   Some(values)
 }
 
-impl_parse_exact!(parse_first, next);
-impl_parse_exact!(parse_last, last);
+impl_parse_exact!(parse_first_table, next);
+impl_parse_exact!(parse_last_table, last);
 
 fn parse_table(html: Cow<str>) -> Option<Vec<Vec<String>>> {
   let dom = tl::parse(&html, ParserOptions::default()).ok()?;
@@ -56,7 +58,7 @@ fn parse_table(html: Cow<str>) -> Option<Vec<Vec<String>>> {
         .top()
         .iter()
         .filter_map(|handle| get_inner_text(parser, handle))
-        .map(normalize)
+        .map(normalize_text)
         .collect::<Vec<String>>()
     })
     .filter(|x| !x.iter().all(|x| x.is_empty()))
@@ -81,9 +83,9 @@ const PATTERNS: [&str; 14] = [
 
 const REPLACE: [&str; 14] = ["<", ">", "&", " ", " ", " ", "©", "—", "–", " ", "«", "»", "...", "§"];
 
-fn normalize(text: String) -> String {
+pub fn normalize_text<S: AsRef<str>>(source: S) -> String {
   let corasik = AhoCorasick::new(PATTERNS).unwrap();
-  let text = corasik.replace_all(&text, &REPLACE);
+  let text = corasik.replace_all(source.as_ref(), &REPLACE);
   let mut chars = text.chars().peekable();
   let mut whitespaces_only = true;
   let mut res = String::new();
@@ -146,14 +148,14 @@ mod tests {
   #[case("<table>Hey</table>", None)]
   #[case("<div>Hi</div>", None)]
   fn simple(#[case] html: &str, #[case] expected: Option<Table>) {
-    assert_eq!(expected, parse_first(html));
+    assert_eq!(expected, parse_first_table(html));
   }
 
   #[rstest]
   #[case(TWO_TABLES, table![[("Header", "Value"), ("A", "B")], [("Header", "Value"), ("A", "B")]])]
   #[case("<div>Hi</div>", None)]
   fn multiple(#[case] html: &str, #[case] expected: Option<Vec<Table>>) {
-    assert_eq!(expected, parse_all(html));
+    assert_eq!(expected, parse_all_tables(html));
   }
 
   #[rstest]
@@ -162,6 +164,6 @@ mod tests {
   #[case("f&nbsp;f", "f f")]
   #[case("f  f", "f f")]
   fn special_symbols(#[case] input: String, #[case] expected: &str) {
-    assert_eq!(normalize(input), expected);
+    assert_eq!(normalize_text(input), expected);
   }
 }

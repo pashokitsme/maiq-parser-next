@@ -6,24 +6,24 @@ use std::slice::Iter;
 pub struct Snapshot<'s> {
   id: i32,
   date: (),
-  groups: &'s [Group<'s>],
+  groups: &'s [Group],
 }
 
 #[derive(Default, Debug)]
-pub struct Group<'g> {
+pub struct Group {
   id: i32,
-  name: &'g str,
-  lectures: &'g [Lecture<'g>],
+  name: Box<str>,
+  lectures: Vec<Lecture>,
 }
 
 #[derive(Debug)]
-pub struct Lecture<'l> {
+pub struct Lecture {
   id: i32,
-  order: Option<&'l str>,
-  name: &'l str,
-  classroom: Option<&'l str>,
-  subgroup: Option<i32>,
-  teacher: Option<&'l str>,
+  order: Option<Box<str>>,
+  name: Box<str>,
+  classroom: Option<Box<str>>,
+  subgroup: Option<Box<str>>,
+  teacher: Option<Box<str>>,
 }
 
 pub trait Id {
@@ -42,7 +42,7 @@ impl Id for Snapshot<'_> {
   }
 }
 
-impl Id for Group<'_> {
+impl Id for Group {
   fn compute_id(self) -> Self {
     let id = 2;
     Self { id, ..self }
@@ -53,7 +53,7 @@ impl Id for Group<'_> {
   }
 }
 
-impl Id for Lecture<'_> {
+impl Id for Lecture {
   fn compute_id(self) -> Self {
     let id = 3;
     Self { id, ..self }
@@ -65,12 +65,12 @@ impl Id for Lecture<'_> {
 }
 
 impl<'s> Snapshot<'s> {
-  pub fn new(date: (), groups: &'s [Group<'s>]) -> Self {
+  pub fn new(date: (), groups: &'s [Group]) -> Self {
     Self { date, groups, ..Default::default() }.compute_id()
   }
 
   pub fn group(&self, name: &str) -> Option<&Group> {
-    self.groups.iter().find(|group| group.name == name)
+    self.groups.iter().find(|group| *group.name == *name)
   }
 
   pub fn groups(&self) -> Iter<Group> {
@@ -82,8 +82,36 @@ impl<'s> Snapshot<'s> {
   }
 }
 
-impl<'g> Group<'g> {
-  pub fn new(name: &'g str, lectures: &'g [Lecture<'g>]) -> Self {
-    Self { name, lectures, ..Default::default() }.compute_id()
+impl Group {
+  pub fn new(name: &str, lectures: Vec<Lecture>) -> Self {
+    Self { name: Box::from(name), lectures, ..Default::default() }.compute_id()
+  }
+
+  pub fn name(&self) -> &str {
+    &self.name
+  }
+
+  pub fn set_lectures(&mut self, lectures: Vec<Lecture>) {
+    self.lectures = lectures
+  }
+}
+
+impl Lecture {
+  pub fn new<S: AsRef<str> + Into<Box<str>>>(
+    order: Option<S>,
+    name: S,
+    classroom: Option<S>,
+    subgroup: Option<S>,
+    teacher: Option<S>,
+  ) -> Self {
+    Self {
+      id: 0,
+      order: order.map(|o| o.into()),
+      name: name.into(),
+      classroom: classroom.map(|c| c.into()),
+      subgroup: subgroup.map(|s| s.into()),
+      teacher: teacher.map(|t| t.into()),
+    }
+    .compute_id()
   }
 }

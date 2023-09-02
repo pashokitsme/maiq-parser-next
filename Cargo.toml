@@ -15,6 +15,10 @@ aho-corasick = "1.0.5"
 reqwest = "0.11.20"
 tokio = "1.32.0"
 url = "2.4.1"
+tokio-util = "0.7.8"
+chrono = { version = "0.4.28", default-features = false, features = ["alloc", "serde", "std", "clock"] }
+chrono-tz = "0.8.3"
+collect_slice = "1.2.0"
 
 [dev-dependencies]
 rstest = "0.18.2"

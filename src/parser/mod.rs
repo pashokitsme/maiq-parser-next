@@ -1,52 +1,12 @@
-mod table;
+pub mod table;
 
-use tokio::time::Interval;
-use url::Url;
+mod context;
+mod parse_date;
+mod periodical;
 
-use crate::error::*;
-use table::Table;
+pub use periodical::*;
 
-#[derive(Default)]
-pub struct PeriodicalParserBuilder {
-  remote_urls: Option<Vec<Url>>,
-  interval: Option<Interval>,
-  default_lectures: Option<()>,
-}
-
-impl PeriodicalParserBuilder {
-  pub fn add_url<U: AsRef<str>>(self, url: U) -> Result<Self, url::ParseError> {
-    let mut urls = self.remote_urls.unwrap_or(vec![]);
-    urls.push(Url::parse(url.as_ref())?);
-    Ok(Self { remote_urls: Some(urls), ..self })
-  }
-
-  pub fn with_interval(self, interval: Interval) -> Self {
-    Self { interval: Some(interval), ..self }
-  }
-
-  pub fn with_default_lectures(self, lectures: ()) -> Self {
-    Self { default_lectures: Some(lectures), ..self }
-  }
-
-  pub fn build(self) -> Result<PeriodicalParser, ParserError> {
-    Ok(PeriodicalParser {
-      remote_urls: self.remote_urls.ok_or(BuilderError::UrlNotSet)?,
-      interval: self.interval.ok_or(BuilderError::IntervalNotSet)?,
-      default_lectures: self.default_lectures.unwrap_or_else(|| {
-        warn!("default lectures not set");
-      }),
-    })
-  }
-}
-
-pub struct PeriodicalParser {
-  remote_urls: Vec<Url>,
-  interval: Interval,
-  default_lectures: (),
-}
-
-pub struct ParserContext {
-  is_week_even: bool,
-  table: Table,
-  default_lectures: (),
-}
+const GROUP_NAMES: [&str; 25] = [
+  "Ит1-22", "Са1-21", "Са3-21", "С1-21", "С3-21", "Ир1-21", "Ир3-21", "Ир5-21", "С1-20", "С3-20", "Ип1-20", "Ип3-20", "Ир1-20",
+  "Ир3-20", "Ир5-20", "Кс1-20", "Кс3-20", "Кс5-20", "С1-19", "С3-19", "С1-18", "С3-18", "ЗК1-22", "ЗК1-18", "ЗК1-19",
+];
