@@ -34,7 +34,7 @@ pub struct ParserContext {
   group_names: Vec<Box<str>>,
 }
 
-impl<'c> ParserContext {
+impl ParserContext {
   pub fn with_groups<S: AsRef<str>, I: Iterator<Item = S>>(self, group_names: I) -> Self {
     let group_names = group_names
       .map(|name| name.as_ref().into())
@@ -67,7 +67,7 @@ impl<'c> ParserContext {
           if &**anchor != cell.as_ref() {
             *anchor = Box::from(cell.as_ref());
           }
-          (split_group_name(Some(cell)), parse_num(&mut row))
+          (split_group_name(Some(cell)), parse_order(&mut row))
         }
         Some(cell) => (split_group_name(Some(&anchor)), Some(Box::from(cell.as_ref()))),
         _ => return RawLecture::default(),
@@ -132,7 +132,7 @@ impl<'c> ParserContext {
   }
 }
 
-fn parse_num<'o, S: AsRef<str>, I: Iterator<Item = S>>(row: &mut I) -> Option<Box<str>> {
+fn parse_order<'o, S: AsRef<str>, I: Iterator<Item = S>>(row: &mut I) -> Option<Box<str>> {
   match row.peekable().peek().map(is_correct_order).unwrap_or(false) {
     true => match row.next() {
       Some(x) if !x.as_ref().trim().is_empty() => Some(x.as_ref().trim().into()),
