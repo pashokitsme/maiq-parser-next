@@ -118,4 +118,24 @@ impl Lecture {
   ) -> Self {
     Self { id: 0, order, name, classroom, subgroup, teacher }.compute_id()
   }
+
+  pub fn name(&self) -> &str {
+    &self.name
+  }
+
+  pub fn order(&self) -> Option<&str> {
+    self.order.as_deref()
+  }
+
+  pub fn subgroup(&self) -> Option<&str> {
+    self.subgroup.as_deref()
+  }
+
+  pub fn teacher(&self) -> Option<&str> {
+    self.teacher.as_deref()
+  }
+
+  pub fn classroom(&self) -> Option<&str> {
+    self.classroom.as_deref()
+  }
 }

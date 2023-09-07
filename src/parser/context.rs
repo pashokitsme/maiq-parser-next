@@ -1,5 +1,3 @@
-use std::ops::Deref;
-
 use super::table::*;
 use crate::snapshot::*;
 use crate::utils::time::*;
@@ -127,7 +125,7 @@ impl ParserContext {
   }
 }
 
-fn parse_order<'o, S: AsRef<str>, I: Iterator<Item = S>>(row: &mut I) -> Option<Box<str>> {
+fn parse_order<S: AsRef<str>, I: Iterator<Item = S>>(row: &mut I) -> Option<Box<str>> {
   match row.peekable().peek().map(is_correct_order).unwrap_or(false) {
     true => match row.next() {
       Some(x) if !x.as_ref().trim().is_empty() => Some(x.as_ref().trim().into()),
