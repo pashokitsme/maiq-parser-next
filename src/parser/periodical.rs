@@ -1,5 +1,6 @@
 use std::future::Future;
 use std::thread::JoinHandle;
+use std::time::Duration;
 
 use crate::error::*;
 use crate::snapshot::*;
@@ -83,7 +84,13 @@ impl PeriodicalParser {
   }
 
   async fn fetch_table(&self, url: Url) -> reqwest::Result<Option<Table>> {
-    let html_raw = reqwest::get(url).await?.text_with_charset("windows-1251").await?;
+    let client = reqwest::Client::builder().timeout(Duration::from_secs(10)).build()?;
+    let html_raw = client
+      .get(url)
+      .send()
+      .await?
+      .text_with_charset("windows-1251")
+      .await?;
     Ok(parse_last_table(&html_raw))
   }
 }

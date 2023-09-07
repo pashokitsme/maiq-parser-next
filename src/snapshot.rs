@@ -103,8 +103,8 @@ impl Group {
     !self.lectures.is_empty()
   }
 
-  pub fn set_lectures(&mut self, lectures: Vec<Lecture>) {
-    self.lectures = lectures
+  pub fn push_lectures<I: Iterator<Item = Lecture>>(&mut self, lectures: I) {
+    self.lectures.extend(lectures)
   }
 }
 

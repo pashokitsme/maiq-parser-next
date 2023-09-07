@@ -104,23 +104,18 @@ impl ParserContext {
     {
       let group_name = lecture.group_name.as_deref().unwrap();
       let group = groups.iter_mut().find(|x| x.name() == group_name).unwrap();
-      let lectures = lecture
-        .order
-        .unwrap_or_default()
-        .split(',')
-        .map(|x| Some(Box::from(x.trim())))
-        .map(|order| {
-          Lecture::new(
-            order,
-            lecture.name.clone().unwrap_or_default(),
-            lecture.classroom.clone(),
-            lecture.subgroup.clone(),
-            lecture.teacher.clone(),
-          )
-        })
-        .collect::<Vec<Lecture>>();
+      let order = lecture.order.unwrap_or_default();
+      let lectures = order.split(',').map(|x| Some(Box::from(x.trim()))).map(|order| {
+        Lecture::new(
+          order,
+          lecture.name.clone().unwrap_or_default(),
+          lecture.classroom.clone(),
+          lecture.subgroup.clone(),
+          lecture.teacher.clone(),
+        )
+      });
 
-      group.set_lectures(lectures);
+      group.push_lectures(lectures);
     }
 
     groups
@@ -162,7 +157,7 @@ fn split_teacher<S: AsRef<str>>(raw: Option<S>) -> [Option<Box<str>>; 2] {
   [empty_to_none!(Some(raw.as_ref())), None]
 }
 
-fn split_group_name<'s, S: AsRef<str>>(raw: Option<S>) -> [Option<Box<str>>; 2] {
+fn split_group_name<S: AsRef<str>>(raw: Option<S>) -> [Option<Box<str>>; 2] {
   let raw = match raw {
     Some(x) => x,
     None => return [None, None],
@@ -191,5 +186,11 @@ mod tests {
   #[case("Информационные технологии, Иванов И.Л.")]
   fn incorrect_order(#[case] order: &str) {
     assert!(!is_correct_order(order))
+  }
+
+  #[rstest]
+  #[case(Some("Ир3-21 2 п/г"))]
+  fn correct_splitting_group_name(#[case] name: Option<&str>) {
+    println!("{:?}", split_group_name(name))
   }
 }
