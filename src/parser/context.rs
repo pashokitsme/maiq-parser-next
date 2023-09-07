@@ -13,7 +13,7 @@ macro_rules! empty_to_none {
   };
 }
 
-const PREVIOS_ORDER_PLACEHOLDER: &str = "-1";
+const PREVIOUS_ORDER_PLACEHOLDER: &str = "-1";
 
 #[derive(Clone, Default, Debug)]
 struct RawLecture {
@@ -92,7 +92,7 @@ impl ParserContext {
 
     for lecture in lectures
       .map(|mut lecture| {
-        if matches!(lecture.order.as_deref(), Some(PREVIOS_ORDER_PLACEHOLDER)) {
+        if matches!(lecture.order.as_deref(), Some(PREVIOUS_ORDER_PLACEHOLDER)) {
           lecture.order = prev.as_ref().and_then(|p| p.order.clone())
         }
         prev = Some(lecture.clone());
@@ -131,7 +131,7 @@ fn parse_order<S: AsRef<str>, I: Iterator<Item = S>>(row: &mut I) -> Option<Box<
       Some(x) if !x.as_ref().trim().is_empty() => Some(x.as_ref().trim().into()),
       _ => None,
     },
-    false => Some(Box::from(PREVIOS_ORDER_PLACEHOLDER)),
+    false => Some(Box::from(PREVIOUS_ORDER_PLACEHOLDER)),
   }
 }
 
@@ -187,8 +187,8 @@ mod tests {
   }
 
   #[rstest]
-  #[case(Some("Ир3-21 2 п/г"))]
-  fn correct_splitting_group_name(#[case] name: Option<&str>) {
-    println!("{:?}", split_group_name(name))
+  #[case(Some("Ир3-21 2 п/г"), [Some("Ир3-21".into()), Some("2".into())])]
+  fn correct_splitting_group_name(#[case] name: Option<&str>, #[case] expect: [Option<Box<str>>; 2]) {
+    assert_eq!(split_group_name(name), expect)
   }
 }
