@@ -17,6 +17,5 @@ async fn main() {
 
   while let Some(value) = rx.recv().await {
     println!("{value:?}");
-    token.cancel()
   }
 }

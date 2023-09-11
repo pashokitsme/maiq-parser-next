@@ -4,16 +4,15 @@ use tokio::sync::mpsc;
 use tokio::time::Interval;
 use tokio_util::sync::CancellationToken;
 
-use url::Url;
-
-use crate::error::*;
-use crate::snapshot::*;
-use crate::utils::time::DateTime;
-use crate::utils::time::DateTimeExt;
-
 use super::default_lectures::DefaultLectures;
-use super::table::parse_last_table;
-use super::table::Table;
+use crate::error::*;
+use crate::parser::table::*;
+use crate::snapshot::*;
+use crate::utils::time::*;
+
+use reqwest::blocking::*;
+
+use url::Url;
 
 type Changes = ();
 type UpdateSender = mpsc::Sender<Snapshot>;
@@ -51,6 +50,7 @@ impl PeriodicalParserBuilder {
 
   pub fn build(self) -> Result<PeriodicalParser, ParserError> {
     Ok(PeriodicalParser {
+      http_client: self.reqwest_client()?,
       remote_urls: self.remote_urls.ok_or(BuilderError::UrlNotSet)?,
       interval: self.interval.ok_or(BuilderError::IntervalNotSet)?,
       default_lectures: self.default_lectures.unwrap_or_else(|| {
@@ -60,6 +60,10 @@ impl PeriodicalParserBuilder {
       on_update: self.on_update.unwrap(),
     })
   }
+
+  fn reqwest_client(&self) -> reqwest::Result<Client> {
+    Client::builder().timeout(Duration::from_secs(10)).build()
+  }
 }
 
 pub struct PeriodicalParser {
@@ -67,6 +71,7 @@ pub struct PeriodicalParser {
   interval: Interval,
   default_lectures: DefaultLectures,
   on_update: UpdateSender,
+  http_client: Client,
 }
 
 impl PeriodicalParser {
@@ -91,18 +96,12 @@ impl PeriodicalParser {
   }
 
   async fn parse(&self, url: Url) {
-    let table = self.fetch_table(url).await.unwrap().unwrap();
+    let table = self.fetch_table(url).await;
     let parser = ();
   }
 
   async fn fetch_table(&self, url: Url) -> reqwest::Result<Option<Table>> {
-    let client = reqwest::Client::builder().timeout(Duration::from_secs(10)).build()?;
-    let html_raw = client
-      .get(url)
-      .send()
-      .await?
-      .text_with_charset("windows-1251")
-      .await?;
+    let html_raw = self.http_client.get(url).send()?.text_with_charset("windows-1251")?;
     Ok(parse_last_table(&html_raw))
   }
 }
