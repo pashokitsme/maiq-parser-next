@@ -9,6 +9,7 @@ use tokio::time::Interval;
 use tokio_util::sync::CancellationToken;
 use url::Url;
 
+use super::default_lectures::DefaultLectures;
 use super::table::parse_last_table;
 use super::table::Table;
 
@@ -18,7 +19,7 @@ type Changes = ();
 pub struct PeriodicalParserBuilder {
   remote_urls: Option<Vec<Url>>,
   interval: Option<Interval>,
-  default_lectures: Option<()>,
+  default_lectures: Option<DefaultLectures>,
   on_update: Option<fn(Snapshot, Changes)>,
 }
 
@@ -33,7 +34,7 @@ impl PeriodicalParserBuilder {
     Self { interval: Some(interval), ..self }
   }
 
-  pub fn with_default_lectures(self, lectures: ()) -> Self {
+  pub fn with_default_lectures(self, lectures: DefaultLectures) -> Self {
     Self { default_lectures: Some(lectures), ..self }
   }
 
@@ -45,9 +46,10 @@ impl PeriodicalParserBuilder {
     Ok(PeriodicalParser {
       remote_urls: self.remote_urls.ok_or(BuilderError::UrlNotSet)?,
       interval: self.interval.ok_or(BuilderError::IntervalNotSet)?,
-      default_lectures: self
-        .default_lectures
-        .unwrap_or_else(|| warn!("default lectures not set")),
+      default_lectures: self.default_lectures.unwrap_or_else(|| {
+        warn!("default lectures not set");
+        DefaultLectures::default()
+      }),
       on_update: self.on_update.unwrap_or(|_, _| warn!("parser update not handled")),
     })
   }
@@ -56,7 +58,7 @@ impl PeriodicalParserBuilder {
 pub struct PeriodicalParser {
   remote_urls: Vec<Url>,
   interval: Interval,
-  default_lectures: (),
+  default_lectures: DefaultLectures,
   on_update: fn(Snapshot, Changes),
 }
 

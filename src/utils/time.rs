@@ -1,9 +1,8 @@
 pub use chrono::prelude::*;
 
-use chrono_tz::Europe::Moscow;
-use chrono_tz::Tz;
+pub type DateTime = chrono::DateTime<FixedOffset>;
 
-pub type DateTime = chrono::DateTime<Tz>;
+const TIME_OFFSET: i32 = 3600 * 3;
 
 pub trait DateTimeExt {
   fn now() -> Self;
@@ -11,6 +10,7 @@ pub trait DateTimeExt {
 
 impl DateTimeExt for DateTime {
   fn now() -> Self {
-    Utc::now().with_timezone(&Moscow)
+    let offset = FixedOffset::east_opt(TIME_OFFSET).unwrap();
+    Utc::now().with_timezone(&offset)
   }
 }

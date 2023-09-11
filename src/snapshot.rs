@@ -1,23 +1,31 @@
+use serde::Deserialize;
+use serde::Serialize;
+
 use crate::utils::time::*;
 
 use std::slice::Iter;
 
-#[derive(Debug)]
+// todo: избавиться от Box<str>
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Snapshot {
+  #[serde(default)]
   id: i32,
   date: DateTime,
   groups: Vec<Group>,
 }
 
-#[derive(Default, Debug)]
+#[derive(Serialize, Deserialize, Clone, Default, Debug)]
 pub struct Group {
+  #[serde(default)]
   id: i32,
   name: Box<str>,
   lectures: Vec<Lecture>,
 }
 
-#[derive(Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Lecture {
+  #[serde(default)]
   id: i32,
   order: Option<Box<str>>,
   name: Box<str>,

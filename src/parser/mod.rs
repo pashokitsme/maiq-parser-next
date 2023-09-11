@@ -1,4 +1,5 @@
 pub mod table;
+pub mod default_lectures;
 
 mod context;
 mod parse_date;
