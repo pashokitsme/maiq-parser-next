@@ -1,29 +1,12 @@
-[package]
-name = "maiq-parser-next"
-authors = ["pashokitsme <t.me/pashokitsme>"]
-version = "0.1.0"
+[workspace]
+members = ["maiq-cli", "maiq-parser"]
+
+[workspace.package]
 edition = "2021"
 
-[lib]
-
-[dependencies]
-tl = "0.7.7"
-
-log = "0.4.20"
-serde = { version = "1.0.188", features = ["derive"] }
-aho-corasick = "1.0.5"
-reqwest = "0.11.20"
-tokio = "1.32.0"
-url = "2.4.1"
-tokio-util = "0.7.8"
-chrono = { version = "0.4.28", default-features = false, features = [
-  "alloc",
-  "serde",
-  "std",
-  "clock",
-  "serde",
-] }
-collect_slice = "1.2.0"
-
-[dev-dependencies]
-rstest = "0.18.2"
+[profile.release]
+panic = "abort"
+codegen-units = 1
+lto = true
+incremental = false
+opt-level = "s"

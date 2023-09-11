@@ -1,8 +1,13 @@
+use serde::Deserialize;
+use serde::Serialize;
+
+#[derive(Debug)]
 pub enum ParserError {
   Network(reqwest::Error),
   Builder(BuilderError),
 }
 
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub enum BuilderError {
   IntervalNotSet,
   UrlNotSet,
