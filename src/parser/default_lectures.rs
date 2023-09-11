@@ -1,11 +1,10 @@
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
+use serde::Serialize;
 
 use crate::snapshot::Lecture;
 
 #[derive(Serialize, Deserialize, Clone, Default)]
-pub struct DefaultLectures {
-  pub groups: Vec<DefaultGroup>,
-}
+pub struct DefaultLectures(Vec<DefaultGroup>);
 
 #[derive(Serialize, Deserialize, Clone, Default, PartialEq, Eq, Debug)]
 pub enum LectureWeek {

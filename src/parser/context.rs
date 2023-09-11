@@ -1,3 +1,4 @@
+use super::default_lectures::DefaultLectures;
 use super::table::*;
 use crate::snapshot::*;
 use crate::utils::time::*;
@@ -27,12 +28,20 @@ struct RawLecture {
 
 pub struct ParserContext {
   is_week_even: bool,
-  default_lectures: (),
+  default_lectures: DefaultLectures,
   fallback_date: DateTime,
   group_names: Vec<Box<str>>,
 }
 
 impl ParserContext {
+  pub fn new(is_week_even: bool, fallback_date: DateTime) -> Self {
+    Self { is_week_even, default_lectures: DefaultLectures::default(), fallback_date, group_names: vec![] }
+  }
+
+  pub fn with_default_lectures(self, lectures: DefaultLectures) -> Self {
+    Self { default_lectures: lectures, ..self }
+  }
+
   pub fn with_groups<S: AsRef<str>, I: Iterator<Item = S>>(self, group_names: I) -> Self {
     let group_names = group_names
       .map(|name| name.as_ref().into())
@@ -90,7 +99,7 @@ impl ParserContext {
       .map(|name| Group::new(name, vec![]))
       .collect::<Vec<Group>>();
 
-    for lecture in lectures
+    lectures
       .map(|mut lecture| {
         if matches!(lecture.order.as_deref(), Some(PREVIOUS_ORDER_PLACEHOLDER)) {
           lecture.order = prev.as_ref().and_then(|p| p.order.clone())
@@ -99,22 +108,22 @@ impl ParserContext {
         lecture
       })
       .filter(|l| l.group_name.is_some() && !matches!(l.name.as_deref(), None | Some("Нет") | Some("нет")))
-    {
-      let group_name = lecture.group_name.as_deref().unwrap();
-      let group = groups.iter_mut().find(|x| x.name() == group_name).unwrap();
-      let order = lecture.order.unwrap_or_default();
-      let lectures = order.split(',').map(|x| Some(Box::from(x.trim()))).map(|order| {
-        Lecture::new(
-          order,
-          lecture.name.clone().unwrap_or_default(),
-          lecture.classroom.clone(),
-          lecture.subgroup.clone(),
-          lecture.teacher.clone(),
-        )
-      });
+      .for_each(|lecture| {
+        let group_name = lecture.group_name.as_deref().unwrap();
+        let group = groups.iter_mut().find(|x| x.name() == group_name).unwrap();
+        let order = lecture.order.unwrap_or_default();
+        let lectures = order.split(',').map(|x| Some(Box::from(x.trim()))).map(|order| {
+          Lecture::new(
+            order,
+            lecture.name.clone().unwrap_or_default(),
+            lecture.classroom.clone(),
+            lecture.subgroup.clone(),
+            lecture.teacher.clone(),
+          )
+        });
 
-      group.push_lectures(lectures);
-    }
+        group.push_lectures(lectures);
+      });
 
     groups
   }
