@@ -1,3 +1,6 @@
+use std::fmt::Display;
+use std::iter::Peekable;
+
 use super::default_lectures::DefaultLectures;
 use super::table::*;
 use crate::snapshot::*;
@@ -53,41 +56,48 @@ impl ParserContext {
     let mut rows = table.rows.into_iter();
     let date = parse_date(&mut rows).unwrap_or(self.fallback_date);
 
-    let raw_lectures = self.parse_raw_lectures(rows);
+    let raw_lectures = self.parse_raw_lectures(rows.skip(1).peekable());
     let mut groups = self.repair_and_assign(raw_lectures.into_iter());
-    // replace_all_default(&mut groups, date);
     groups.retain(|g| g.has_lectures());
-    Snapshot::new(date, vec![])
+    Snapshot::new(date, groups)
   }
 
-  fn parse_raw_lectures<S: AsRef<str>, I: Iterator<Item = Vec<S>>>(&self, rows: I) -> Vec<RawLecture> {
-    let mut anchor = "Unknown group".into();
+  fn parse_raw_lectures<S: AsRef<str> + Clone + std::fmt::Debug, I: Iterator<Item = Vec<S>> + Clone>(
+    &self,
+    rows: Peekable<I>,
+  ) -> Vec<RawLecture> {
+    let mut anchor = "Unknown".into();
     rows
-      .map(|row| self.parse_raw_lecture(row.into_iter(), &mut anchor))
+      .map(|row| self.parse_raw_lecture(row.into_iter().peekable(), &mut anchor))
       .collect()
   }
 
-  fn parse_raw_lecture<S: AsRef<str>, I: Iterator<Item = S>>(&self, mut row: I, anchor: &mut Box<str>) -> RawLecture {
-    let ([group_name, subgroup], order) = {
-      match row.next() {
-        Some(cell) if self.is_group_name(cell.as_ref()) => {
-          if &**anchor != cell.as_ref() {
-            *anchor = Box::from(cell.as_ref());
-          }
-          (split_group_name(Some(cell)), parse_order(&mut row))
+  fn parse_raw_lecture<S: AsRef<str> + Clone + std::fmt::Debug, I: Iterator<Item = S> + Clone>(
+    &self,
+    mut row: Peekable<I>,
+    anchor: &mut Box<str>,
+  ) -> RawLecture {
+    let ((group_name, subgroup), (order, lecture_name)) = match row.next() {
+      Some(val) if self.is_group_name(val.as_ref()) => {
+        let val = val.as_ref();
+        if &**anchor != val {
+          *anchor = Box::from(val);
         }
-        Some(cell) => (split_group_name(Some(&anchor)), Some(Box::from(cell.as_ref()))),
-        _ => return RawLecture::default(),
+
+        (parse_group_subgroup_pair(val), parse_order_lecture_pair(row.next(), &mut row))
       }
+      Some(val) => (parse_group_subgroup_pair(&anchor), parse_order_lecture_pair(Some(val), &mut row)),
+      _ => return RawLecture::default(),
     };
 
-    let [name, teacher] = split_teacher(row.next());
+    let (lecture_name, teacher) = split_teacher(lecture_name);
+
     let classroom = match row.next() {
       Some(x) if !x.as_ref().trim().is_empty() => Some(Box::from(x.as_ref().trim())),
       _ => None,
     };
 
-    RawLecture { order, group_name, subgroup, name, teacher, classroom }
+    RawLecture { order: Some(order), group_name, subgroup, name: lecture_name, teacher, classroom }
   }
 
   fn repair_and_assign<I: Iterator<Item = RawLecture>>(self, lectures: I) -> Vec<Group> {
@@ -110,7 +120,10 @@ impl ParserContext {
       .filter(|l| l.group_name.is_some() && !matches!(l.name.as_deref(), None | Some("Нет") | Some("нет")))
       .for_each(|lecture| {
         let group_name = lecture.group_name.as_deref().unwrap();
-        let group = groups.iter_mut().find(|x| x.name() == group_name).unwrap();
+        let group = groups.iter_mut().find(|x| x.name() == group_name);
+        if group.is_none() {
+          return;
+        }
         let order = lecture.order.unwrap_or_default();
         let lectures = order.split(',').map(|x| Some(Box::from(x.trim()))).map(|order| {
           Lecture::new(
@@ -122,9 +135,8 @@ impl ParserContext {
           )
         });
 
-        group.push_lectures(lectures);
+        group.unwrap().push_lectures(lectures);
       });
-
     groups
   }
 
@@ -134,13 +146,12 @@ impl ParserContext {
   }
 }
 
-fn parse_order<S: AsRef<str>, I: Iterator<Item = S>>(row: &mut I) -> Option<Box<str>> {
-  match row.peekable().peek().map(is_correct_order).unwrap_or(false) {
-    true => match row.next() {
-      Some(x) if !x.as_ref().trim().is_empty() => Some(x.as_ref().trim().into()),
-      _ => None,
-    },
-    false => Some(Box::from(PREVIOUS_ORDER_PLACEHOLDER)),
+/// `(order?, lecture_name?)`
+fn parse_order_lecture_pair<S: AsRef<str>, I: Iterator<Item = S>>(raw: Option<S>, row: &mut I) -> (Box<str>, Option<Box<str>>) {
+  match raw {
+    Some(val) if is_correct_order(&val) => (Box::from(val.as_ref()), row.next().map(|x| x.as_ref().into())),
+    Some(val) => (Box::from(PREVIOUS_ORDER_PLACEHOLDER), Some(val.as_ref().into())),
+    None => (Box::from(PREVIOUS_ORDER_PLACEHOLDER), None),
   }
 }
 
@@ -152,26 +163,23 @@ fn is_correct_order<S: AsRef<str>>(raw: S) -> bool {
     .all(|c| SKIP_CHARS.contains(&c) || c.is_numeric())
 }
 
-fn split_teacher<S: AsRef<str>>(raw: Option<S>) -> [Option<Box<str>>; 2] {
+/// `(lecture_name, teacher_name)`
+fn split_teacher<S: AsRef<str>>(raw: Option<S>) -> (Option<Box<str>>, Option<Box<str>>) {
   let raw = match raw {
     Some(x) => x,
-    None => return [None, None],
+    None => return (None, None),
   };
 
   if let Some((name, teacher)) = raw.as_ref().rsplit_once(',') {
-    return [Some(name.into()), empty_to_none!(Some(teacher.trim()))];
+    return (Some(name.into()), empty_to_none!(Some(teacher.trim())));
   }
-  [empty_to_none!(Some(raw.as_ref())), None]
+  (empty_to_none!(Some(raw.as_ref())), None)
 }
 
-fn split_group_name<S: AsRef<str>>(raw: Option<S>) -> [Option<Box<str>>; 2] {
-  let raw = match raw {
-    Some(x) => x,
-    None => return [None, None],
-  };
-
+/// `(group_name?, subgroup?)`
+fn parse_group_subgroup_pair<S: AsRef<str>>(raw: S) -> (Option<Box<str>>, Option<Box<str>>) {
   let mut split = raw.as_ref().split(' ').map(|x| x.trim());
-  [empty_to_none!(split.next()), empty_to_none!(split.next())]
+  (empty_to_none!(split.next()), empty_to_none!(split.next()))
 }
 
 #[cfg(test)]
@@ -191,6 +199,7 @@ mod tests {
   #[rstest]
   #[case("asdf")]
   #[case("Информационные технологии, Иванов И.Л.")]
+  #[case("МДК.01.01 Разработка программных модулей, Пикселькина О.И.")]
   fn incorrect_order(#[case] order: &str) {
     assert!(!is_correct_order(order))
   }
@@ -198,6 +207,6 @@ mod tests {
   #[rstest]
   #[case(Some("Ир3-21 2 п/г"), [Some("Ир3-21".into()), Some("2".into())])]
   fn correct_splitting_group_name(#[case] name: Option<&str>, #[case] expect: [Option<Box<str>>; 2]) {
-    assert_eq!(split_group_name(name), expect)
+    assert_eq!(parse_group_subgroup_pair(name), expect)
   }
 }

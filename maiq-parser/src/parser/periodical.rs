@@ -5,12 +5,14 @@ use tokio::time::Interval;
 use tokio_util::sync::CancellationToken;
 
 use super::default_lectures::DefaultLectures;
+use super::ParserContext;
+use super::GROUP_NAMES;
 use crate::error::*;
 use crate::parser::table::*;
 use crate::snapshot::*;
 use crate::utils::time::*;
 
-use reqwest::blocking::*;
+use reqwest::Client;
 
 use url::Url;
 
@@ -52,7 +54,9 @@ impl PeriodicalParserBuilder {
     Ok(PeriodicalParser {
       http_client: self.reqwest_client()?,
       remote_urls: self.remote_urls.ok_or(BuilderError::UrlNotSet)?,
-      interval: self.interval.ok_or(BuilderError::IntervalNotSet)?,
+      interval: self
+        .interval
+        .unwrap_or_else(|| tokio::time::interval(Duration::from_secs(60 * 5))),
       default_lectures: self.default_lectures.unwrap_or_else(|| {
         warn!("default lectures not set");
         DefaultLectures::default()
@@ -87,21 +91,28 @@ impl PeriodicalParser {
     while !token.is_cancelled() {
       self.interval.tick().await;
       for url in self.remote_urls.iter() {
-        self.parse(url.clone()).await;
-        if let Err(err) = self.on_update.send(Snapshot::new(DateTime::now(), vec![])).await {
+        let snapshot = self.parse(url.clone()).await.unwrap();
+        if let Err(err) = self.on_update.send(snapshot).await {
           error!("can't send parsed snapshot: {:?}", err)
         }
       }
     }
   }
 
-  async fn parse(&self, url: Url) {
-    let table = self.fetch_table(url).await;
-    let parser = ();
+  async fn parse(&self, url: Url) -> Result<Snapshot, ParserError> {
+    let table = self.fetch_table(url).await?.unwrap();
+    let parser = ParserContext::new(true, DateTime::now()).with_groups(GROUP_NAMES.iter());
+    Ok(parser.parse(table))
   }
 
   async fn fetch_table(&self, url: Url) -> reqwest::Result<Option<Table>> {
-    let html_raw = self.http_client.get(url).send()?.text_with_charset("windows-1251")?;
+    let html_raw = self
+      .http_client
+      .get(url)
+      .send()
+      .await?
+      .text_with_charset("windows-1251")
+      .await?;
     Ok(parse_last_table(&html_raw))
   }
 }
