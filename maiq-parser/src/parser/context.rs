@@ -205,8 +205,8 @@ mod tests {
   }
 
   #[rstest]
-  #[case(Some("Ир3-21 2 п/г"), [Some("Ир3-21".into()), Some("2".into())])]
-  fn correct_splitting_group_name(#[case] name: Option<&str>, #[case] expect: [Option<Box<str>>; 2]) {
+  #[case("Ир3-21 2 п/г", (Some("Ир3-21".into()), Some("2".into())))]
+  fn correct_splitting_group_name(#[case] name: &str, #[case] expect: (Option<Box<str>>, Option<Box<str>>)) {
     assert_eq!(parse_group_subgroup_pair(name), expect)
   }
 }
