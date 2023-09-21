@@ -18,8 +18,8 @@ use reqwest::Client;
 
 use url::Url;
 
-type Changes = ();
-type UpdateSender = mpsc::Sender<Snapshot>;
+type Changes = Vec<String>;
+type UpdateSender = mpsc::Sender<(Option<Snapshot>, Changes)>;
 
 #[derive(Default)]
 pub struct PeriodicalParserBuilder {
@@ -64,6 +64,7 @@ impl PeriodicalParserBuilder {
         Arc::from(DefaultLectures::default())
       }),
       on_update: self.on_update.unwrap(),
+      prev_snapshot: None,
     })
   }
 
@@ -78,6 +79,7 @@ pub struct PeriodicalParser {
   default_lectures: Arc<DefaultLectures>,
   on_update: UpdateSender,
   http_client: Client,
+  prev_snapshot: Option<Snapshot>,
 }
 
 impl PeriodicalParser {
@@ -93,8 +95,10 @@ impl PeriodicalParser {
     while !token.is_cancelled() {
       self.interval.tick().await;
       for url in self.remote_urls.iter() {
-        let snapshot = self.parse(url.clone()).await.unwrap();
-        if let Err(err) = self.on_update.send(snapshot).await {
+        let snapshot = self.parse(url.clone()).await.ok();
+        let changes = self.prev_snapshot.as_ref().distinct(snapshot.as_ref(), &GROUP_NAMES);
+        self.prev_snapshot = snapshot.clone();
+        if let Err(err) = self.on_update.send((snapshot, changes)).await {
           error!("can't send parsed snapshot: {:?}", err)
         }
       }

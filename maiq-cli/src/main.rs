@@ -16,7 +16,7 @@ async fn main() {
     .unwrap();
 
   _ = parser.start();
-  let snapshot = rx.recv().await;
+  let (snapshot, _) = rx.recv().await.unwrap();
   print_snapshot(&snapshot.unwrap());
 }
 

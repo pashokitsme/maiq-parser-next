@@ -1,4 +1,5 @@
 [workspace]
+resolver = "2"
 members = ["maiq-cli", "maiq-parser"]
 
 [workspace.package]
