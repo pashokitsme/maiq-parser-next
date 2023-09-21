@@ -5,4 +5,5 @@ edition = { workspace = true }
 
 [dependencies]
 maiq-parser-next = { path = "../maiq-parser" }
+owo-colors = "3.5.0"
 tokio = { version = "1.32.0", features = ["rt-multi-thread", "macros"] }
