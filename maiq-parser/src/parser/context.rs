@@ -1,6 +1,6 @@
 use std::iter::Peekable;
 
-use super::default_lectures::DefaultLectures;
+use super::default_lectures::*;
 use super::table::*;
 use crate::snapshot::*;
 use crate::utils::time::*;
@@ -56,7 +56,7 @@ impl ParserContext {
     let date = parse_date(&mut rows).unwrap_or(self.fallback_date);
 
     let raw_lectures = self.parse_raw_lectures(rows.skip(1).peekable());
-    let mut groups = self.repair_and_assign(raw_lectures.into_iter());
+    let mut groups = self.assign_to_groups(raw_lectures.into_iter());
     groups.retain(|g| g.has_lectures());
     Snapshot::new(date, groups)
   }
@@ -96,7 +96,7 @@ impl ParserContext {
     RawLecture { order: Some(order), group_name, subgroup, name: lecture_name, teacher, classroom }
   }
 
-  fn repair_and_assign<I: Iterator<Item = RawLecture>>(self, lectures: I) -> Vec<Group> {
+  fn assign_to_groups<I: Iterator<Item = RawLecture>>(self, lectures: I) -> Vec<Group> {
     let mut prev: Option<RawLecture> = None;
 
     let mut groups = self
@@ -120,20 +120,67 @@ impl ParserContext {
         if group.is_none() {
           return;
         }
-        let order = lecture.order.unwrap_or_default();
-        let lectures = order.split(',').map(|x| Some(Box::from(x.trim()))).map(|order| {
-          Lecture::new(
-            order,
-            lecture.name.clone().unwrap_or_default(),
-            lecture.classroom.clone(),
-            lecture.subgroup.clone(),
-            lecture.teacher.clone(),
-          )
-        });
-
-        group.unwrap().push_lectures(lectures);
+        let lectures = self.expand_raw_lecture(lecture);
+        group.unwrap().push_lectures(lectures.into_iter());
       });
     groups
+  }
+
+  fn expand_raw_lecture(&self, lecture: RawLecture) -> Vec<Lecture> {
+    let is_week_even = self.is_week_even;
+
+    if matches!(lecture.name.as_deref(), None | Some("По расписанию") | Some("по расписанию")) {
+      if let Some(default_lecture) = self
+        .default_lectures
+        .group(lecture.group_name.unwrap())
+        .and_then(|mut lectures| {
+          lectures.find(|lecture| match lecture.week {
+            LectureWeek::Even => is_week_even,
+            LectureWeek::Odd => !is_week_even,
+            LectureWeek::Every => true,
+          })
+        })
+      {
+        return lecture
+          .order
+          .unwrap_or_else(|| default_lecture.order().unwrap_or_default().into())
+          .split(',')
+          .map(|order| {
+            Lecture::new(
+              Some(order.trim().into()),
+              default_lecture.name().into(),
+              lecture
+                .classroom
+                .clone()
+                .or_else(|| default_lecture.classroom().map(Into::into)),
+              lecture
+                .subgroup
+                .clone()
+                .or_else(|| default_lecture.subgroup().map(Into::into)),
+              lecture
+                .teacher
+                .clone()
+                .or_else(|| default_lecture.teacher().map(Into::into)),
+            )
+          })
+          .collect();
+      }
+    }
+
+    lecture
+      .order
+      .unwrap_or_default()
+      .split(',')
+      .map(|order| {
+        Lecture::new(
+          Some(order.trim().into()),
+          lecture.name.clone().unwrap_or_default(),
+          lecture.classroom.clone(),
+          lecture.subgroup.clone(),
+          lecture.teacher.clone(),
+        )
+      })
+      .collect()
   }
 
   fn is_group_name(&self, name: &str) -> bool {
