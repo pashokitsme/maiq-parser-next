@@ -1,4 +1,3 @@
-use std::fmt::Display;
 use std::iter::Peekable;
 
 use super::default_lectures::DefaultLectures;
@@ -62,17 +61,14 @@ impl ParserContext {
     Snapshot::new(date, groups)
   }
 
-  fn parse_raw_lectures<S: AsRef<str> + Clone + std::fmt::Debug, I: Iterator<Item = Vec<S>> + Clone>(
-    &self,
-    rows: Peekable<I>,
-  ) -> Vec<RawLecture> {
+  fn parse_raw_lectures<S: AsRef<str>, I: Iterator<Item = Vec<S>> + Clone>(&self, rows: Peekable<I>) -> Vec<RawLecture> {
     let mut anchor = "Unknown".into();
     rows
-      .map(|row| self.parse_raw_lecture(row.into_iter().peekable(), &mut anchor))
+      .map(|row| self.parse_raw_lecture(row.iter().peekable(), &mut anchor))
       .collect()
   }
 
-  fn parse_raw_lecture<S: AsRef<str> + Clone + std::fmt::Debug, I: Iterator<Item = S> + Clone>(
+  fn parse_raw_lecture<S: AsRef<str>, I: Iterator<Item = S> + Clone>(
     &self,
     mut row: Peekable<I>,
     anchor: &mut Box<str>,

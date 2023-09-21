@@ -107,6 +107,10 @@ impl Group {
     &self.name
   }
 
+  pub fn lectures(&self) -> Iter<Lecture> {
+    self.lectures.iter()
+  } 
+
   pub fn has_lectures(&self) -> bool {
     !self.lectures.is_empty()
   }
