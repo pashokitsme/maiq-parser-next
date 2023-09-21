@@ -1,4 +1,5 @@
 use std::iter::Peekable;
+use std::sync::Arc;
 
 use super::default_lectures::*;
 use super::table::*;
@@ -30,17 +31,17 @@ struct RawLecture {
 
 pub struct ParserContext {
   is_week_even: bool,
-  default_lectures: DefaultLectures,
+  default_lectures: Arc<DefaultLectures>,
   fallback_date: DateTime,
   group_names: Vec<Box<str>>,
 }
 
 impl ParserContext {
   pub fn new(is_week_even: bool, fallback_date: DateTime) -> Self {
-    Self { is_week_even, default_lectures: DefaultLectures::default(), fallback_date, group_names: vec![] }
+    Self { is_week_even, default_lectures: Arc::from(DefaultLectures::default()), fallback_date, group_names: vec![] }
   }
 
-  pub fn with_default_lectures(self, lectures: DefaultLectures) -> Self {
+  pub fn with_default_lectures(self, lectures: Arc<DefaultLectures>) -> Self {
     Self { default_lectures: lectures, ..self }
   }
 

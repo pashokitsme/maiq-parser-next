@@ -1,3 +1,4 @@
+use std::sync::Arc;
 use std::time::Duration;
 
 use tokio::sync::mpsc;
@@ -7,6 +8,7 @@ use tokio_util::sync::CancellationToken;
 use super::default_lectures::DefaultLectures;
 use super::ParserContext;
 use super::GROUP_NAMES;
+
 use crate::error::*;
 use crate::parser::table::*;
 use crate::snapshot::*;
@@ -23,7 +25,7 @@ type UpdateSender = mpsc::Sender<Snapshot>;
 pub struct PeriodicalParserBuilder {
   remote_urls: Option<Vec<Url>>,
   interval: Option<Interval>,
-  default_lectures: Option<DefaultLectures>,
+  default_lectures: Option<Arc<DefaultLectures>>,
   on_update: Option<UpdateSender>,
 }
 
@@ -43,7 +45,7 @@ impl PeriodicalParserBuilder {
   }
 
   pub fn with_default_lectures(self, lectures: DefaultLectures) -> Self {
-    Self { default_lectures: Some(lectures), ..self }
+    Self { default_lectures: Some(Arc::from(lectures)), ..self }
   }
 
   pub fn on_update(self, on_update: UpdateSender) -> Self {
@@ -59,7 +61,7 @@ impl PeriodicalParserBuilder {
         .unwrap_or_else(|| tokio::time::interval(Duration::from_secs(60 * 5))),
       default_lectures: self.default_lectures.unwrap_or_else(|| {
         warn!("default lectures not set");
-        DefaultLectures::default()
+        Arc::from(DefaultLectures::default())
       }),
       on_update: self.on_update.unwrap(),
     })
@@ -73,7 +75,7 @@ impl PeriodicalParserBuilder {
 pub struct PeriodicalParser {
   remote_urls: Vec<Url>,
   interval: Interval,
-  default_lectures: DefaultLectures,
+  default_lectures: Arc<DefaultLectures>,
   on_update: UpdateSender,
   http_client: Client,
 }
@@ -101,7 +103,9 @@ impl PeriodicalParser {
 
   async fn parse(&self, url: Url) -> Result<Snapshot, ParserError> {
     let table = self.fetch_table(url).await?.unwrap();
-    let parser = ParserContext::new(true, DateTime::now()).with_groups(GROUP_NAMES.iter());
+    let parser = ParserContext::new(true, DateTime::now())
+      .with_groups(GROUP_NAMES.iter())
+      .with_default_lectures(self.default_lectures.clone());
     Ok(parser.parse(table))
   }
 
