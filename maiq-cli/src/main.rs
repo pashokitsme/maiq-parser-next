@@ -22,7 +22,7 @@ async fn main() {
 }
 
 fn print_snapshot(s: &Snapshot) {
-  println!("{} от {}\n", s.id(), s.date());
+  println!("{} от {}\n", s.id().purple(), s.date().bright_white());
   for group in s.groups() {
     print_group(group);
     println!()

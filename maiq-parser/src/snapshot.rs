@@ -88,9 +88,7 @@ impl Id for Lecture {
 
 impl Snapshot {
   pub fn new(date: DateTime, groups: Vec<Group>) -> Self {
-    let mut snapshot = Self { id: 0, date, groups }.sort_groups();
-    snapshot.compute_id();
-    snapshot
+    Self { id: 0, date, groups }.sort_groups()
   }
 
   pub fn group(&self, name: &str) -> Option<&Group> {
@@ -110,6 +108,7 @@ impl Snapshot {
       g.lectures.sort_by_key(|g| g.subgroup.clone());
       g.lectures.sort_by(|a, b| a.order.cmp(&b.order));
     });
+    self.compute_id();
     self
   }
 }
