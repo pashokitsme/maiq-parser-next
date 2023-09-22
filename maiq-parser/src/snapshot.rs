@@ -2,7 +2,7 @@ use serde::Deserialize;
 use serde::Serialize;
 
 use std::collections::hash_map::DefaultHasher;
-use std::hash::{Hash, Hasher};
+use std::hash::*;
 
 use crate::utils::time::*;
 
@@ -40,16 +40,15 @@ pub struct Lecture {
 }
 
 pub trait Id {
-  fn compute_id(self) -> Self;
+  fn compute_id(&mut self);
   fn id(&self) -> u64;
 }
 
 impl Id for Snapshot {
-  fn compute_id(self) -> Self {
+  fn compute_id(&mut self) {
     let mut hash = DefaultHasher::default();
-    self.groups().for_each(|lecture| lecture.id().hash(&mut hash));
-    let id = hash.finish();
-    Self { id, ..self }
+    self.groups().for_each(|group| group.id().hash(&mut hash));
+    self.id = hash.finish();
   }
 
   fn id(&self) -> u64 {
@@ -58,11 +57,10 @@ impl Id for Snapshot {
 }
 
 impl Id for Group {
-  fn compute_id(self) -> Self {
+  fn compute_id(&mut self) {
     let mut hash = DefaultHasher::default();
     self.lectures().for_each(|lecture| lecture.id().hash(&mut hash));
-    let id = hash.finish();
-    Self { id, ..self }
+    self.id = hash.finish();
   }
 
   fn id(&self) -> u64 {
@@ -71,7 +69,7 @@ impl Id for Group {
 }
 
 impl Id for Lecture {
-  fn compute_id(self) -> Self {
+  fn compute_id(&mut self) {
     let mut hash = DefaultHasher::default();
 
     self.order().unwrap_or_default().hash(&mut hash);
@@ -80,9 +78,7 @@ impl Id for Lecture {
     self.classroom().unwrap_or_default().hash(&mut hash);
     self.teacher().unwrap_or_default().hash(&mut hash);
 
-    let id = hash.finish();
-
-    Self { id, ..self }
+    self.id = hash.finish();
   }
 
   fn id(&self) -> u64 {
@@ -92,7 +88,9 @@ impl Id for Lecture {
 
 impl Snapshot {
   pub fn new(date: DateTime, groups: Vec<Group>) -> Self {
-    Self { id: 0, date, groups }.sort_groups().compute_id()
+    let mut snapshot = Self { id: 0, date, groups }.sort_groups();
+    snapshot.compute_id();
+    snapshot
   }
 
   pub fn group(&self, name: &str) -> Option<&Group> {
@@ -118,7 +116,9 @@ impl Snapshot {
 
 impl Group {
   pub fn new(name: &str, lectures: Vec<Lecture>) -> Self {
-    Self { name: Box::from(name), lectures, ..Default::default() }.compute_id()
+    let mut group = Self { name: Box::from(name), lectures, ..Default::default() };
+    group.compute_id();
+    group
   }
 
   pub fn name(&self) -> &str {
@@ -134,7 +134,8 @@ impl Group {
   }
 
   pub fn push_lectures<I: Iterator<Item = Lecture>>(&mut self, lectures: I) {
-    self.lectures.extend(lectures)
+    self.lectures.extend(lectures);
+    self.compute_id();
   }
 }
 
@@ -146,7 +147,9 @@ impl Lecture {
     subgroup: Option<Box<str>>,
     teacher: Option<Box<str>>,
   ) -> Self {
-    Self { id: 0, order, name, classroom, subgroup, teacher }.compute_id()
+    let mut lecture = Self { id: 0, order, name, classroom, subgroup, teacher };
+    lecture.compute_id();
+    lecture
   }
 
   pub fn name(&self) -> &str {
