@@ -30,7 +30,7 @@ fn print_snapshot(s: &Snapshot) {
 }
 
 fn print_group(g: &Group) {
-  println!("Группа {} ({}) ({})", g.name().bright_white(), g.id().purple(), g.lectures().len());
+  println!("Группа {} ({}) ({})", g.name().bright_white(), g.lectures().len(), g.id().purple());
   for lecture in g.lectures() {
     print!("\t");
     if let Some(ref num) = lecture.order() {

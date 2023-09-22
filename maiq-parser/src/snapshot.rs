@@ -1,6 +1,9 @@
 use serde::Deserialize;
 use serde::Serialize;
 
+use std::collections::hash_map::DefaultHasher;
+use std::hash::{Hash, Hasher};
+
 use crate::utils::time::*;
 
 use std::slice::Iter;
@@ -12,7 +15,7 @@ pub use cmp::*;
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Snapshot {
   #[serde(default)]
-  id: i32,
+  id: u64,
   date: DateTime,
   groups: Vec<Group>,
 }
@@ -20,7 +23,7 @@ pub struct Snapshot {
 #[derive(Serialize, Deserialize, Clone, Default, Debug)]
 pub struct Group {
   #[serde(default)]
-  id: i32,
+  id: u64,
   name: Box<str>,
   lectures: Vec<Lecture>,
 }
@@ -28,7 +31,7 @@ pub struct Group {
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Lecture {
   #[serde(default)]
-  id: i32,
+  id: u64,
   order: Option<Box<str>>,
   name: Box<str>,
   classroom: Option<Box<str>>,
@@ -38,38 +41,51 @@ pub struct Lecture {
 
 pub trait Id {
   fn compute_id(self) -> Self;
-  fn id(&self) -> i32;
+  fn id(&self) -> u64;
 }
 
 impl Id for Snapshot {
   fn compute_id(self) -> Self {
-    let id = 1;
+    let mut hash = DefaultHasher::default();
+    self.groups().for_each(|lecture| lecture.id().hash(&mut hash));
+    let id = hash.finish();
     Self { id, ..self }
   }
 
-  fn id(&self) -> i32 {
+  fn id(&self) -> u64 {
     self.id
   }
 }
 
 impl Id for Group {
   fn compute_id(self) -> Self {
-    let id = 2;
+    let mut hash = DefaultHasher::default();
+    self.lectures().for_each(|lecture| lecture.id().hash(&mut hash));
+    let id = hash.finish();
     Self { id, ..self }
   }
 
-  fn id(&self) -> i32 {
+  fn id(&self) -> u64 {
     self.id
   }
 }
 
 impl Id for Lecture {
   fn compute_id(self) -> Self {
-    let id = 3;
+    let mut hash = DefaultHasher::default();
+
+    self.order().unwrap_or_default().hash(&mut hash);
+    self.name().hash(&mut hash);
+    self.subgroup().unwrap_or_default().hash(&mut hash);
+    self.classroom().unwrap_or_default().hash(&mut hash);
+    self.teacher().unwrap_or_default().hash(&mut hash);
+
+    let id = hash.finish();
+
     Self { id, ..self }
   }
 
-  fn id(&self) -> i32 {
+  fn id(&self) -> u64 {
     self.id
   }
 }
