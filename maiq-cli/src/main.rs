@@ -1,3 +1,4 @@
+use maiq_parser_next::parser::PeriodicalParserBuilder;
 use maiq_parser_next::snapshot::*;
 
 use tokio::sync::mpsc;
@@ -8,7 +9,7 @@ use owo_colors::OwoColorize;
 async fn main() {
   let (tx, mut rx) = mpsc::channel(32);
 
-  let parser = maiq_parser_next::parser::PeriodicalParserBuilder::new()
+  let parser = PeriodicalParserBuilder::new()
     .add_url("https://rsp.chemk.org/4korp/today.htm")
     .unwrap()
     .on_update(tx)

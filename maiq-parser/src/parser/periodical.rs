@@ -23,7 +23,7 @@ type UpdateSender = mpsc::Sender<(Option<Snapshot>, Changes)>;
 
 #[derive(Default)]
 pub struct PeriodicalParserBuilder {
-  remote_urls: Option<Vec<Url>>,
+  remote_url: Option<Url>,
   interval: Option<Interval>,
   default_lectures: Option<Arc<DefaultLectures>>,
   on_update: Option<UpdateSender>,
@@ -35,9 +35,7 @@ impl PeriodicalParserBuilder {
   }
 
   pub fn add_url<U: AsRef<str>>(self, url: U) -> Result<Self, url::ParseError> {
-    let mut urls = self.remote_urls.unwrap_or(vec![]);
-    urls.push(Url::parse(url.as_ref())?);
-    Ok(Self { remote_urls: Some(urls), ..self })
+    Ok(Self { remote_url: Some(url.as_ref().parse()?), ..self })
   }
 
   pub fn with_interval(self, interval: Duration) -> Self {
@@ -55,7 +53,7 @@ impl PeriodicalParserBuilder {
   pub fn build(self) -> Result<PeriodicalParser, ParserError> {
     Ok(PeriodicalParser {
       http_client: self.reqwest_client()?,
-      remote_urls: self.remote_urls.ok_or(BuilderError::UrlNotSet)?,
+      remote_url: self.remote_url.ok_or(BuilderError::UrlNotSet)?,
       interval: self
         .interval
         .unwrap_or_else(|| tokio::time::interval(Duration::from_secs(60 * 5))),
@@ -74,7 +72,7 @@ impl PeriodicalParserBuilder {
 }
 
 pub struct PeriodicalParser {
-  remote_urls: Vec<Url>,
+  remote_url: Url,
   interval: Interval,
   default_lectures: Arc<DefaultLectures>,
   on_update: UpdateSender,
@@ -94,20 +92,18 @@ impl PeriodicalParser {
   async fn main_loop(mut self, token: CancellationToken) {
     while !token.is_cancelled() {
       self.interval.tick().await;
-      for url in self.remote_urls.iter() {
-        let snapshot = self.parse(url.clone()).await.ok();
-        let changes = self.prev_snapshot.as_ref().distinct(snapshot.as_ref(), &GROUP_NAMES);
-        self.prev_snapshot = snapshot.clone();
-        if let Err(err) = self.on_update.send((snapshot, changes)).await {
-          error!("can't send parsed snapshot: {:?}", err)
-        }
+      let snapshot = self.parse(self.remote_url.clone()).await.ok();
+      let changes = self.prev_snapshot.as_ref().distinct(snapshot.as_ref(), &GROUP_NAMES);
+      self.prev_snapshot = snapshot.clone();
+      if let Err(err) = self.on_update.send((snapshot, changes)).await {
+        error!("can't send parsed snapshot: {:?}", err)
       }
     }
   }
 
   async fn parse(&self, url: Url) -> Result<Snapshot, ParserError> {
     let table = self.fetch_table(url).await?.unwrap();
-    let parser = ParserContext::new(true, DateTime::now())
+    let parser = ParserContext::new(DateTime::now())
       .with_groups(GROUP_NAMES.iter())
       .with_default_lectures(self.default_lectures.clone());
     Ok(parser.parse(table))

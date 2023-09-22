@@ -30,15 +30,14 @@ struct RawLecture {
 }
 
 pub struct ParserContext {
-  is_week_even: bool,
   default_lectures: Arc<DefaultLectures>,
   fallback_date: DateTime,
   group_names: Vec<Box<str>>,
 }
 
 impl ParserContext {
-  pub fn new(is_week_even: bool, fallback_date: DateTime) -> Self {
-    Self { is_week_even, default_lectures: Arc::from(DefaultLectures::default()), fallback_date, group_names: vec![] }
+  pub fn new(fallback_date: DateTime) -> Self {
+    Self { default_lectures: Arc::from(DefaultLectures::default()), fallback_date, group_names: vec![] }
   }
 
   pub fn with_default_lectures(self, lectures: Arc<DefaultLectures>) -> Self {
@@ -55,9 +54,10 @@ impl ParserContext {
   pub fn parse(self, table: Table) -> Snapshot {
     let mut rows = table.rows.into_iter();
     let date = parse_date(&mut rows).unwrap_or(self.fallback_date);
+    let is_week_even = date.iso_week().week0() % 2 == 0;
 
     let raw_lectures = self.parse_raw_lectures(rows.skip(1).peekable());
-    let mut groups = self.assign_to_groups(raw_lectures.into_iter());
+    let mut groups = self.assign_to_groups(raw_lectures.into_iter(), is_week_even);
     groups.retain(|g| g.has_lectures());
     Snapshot::new(date, groups)
   }
@@ -97,7 +97,7 @@ impl ParserContext {
     RawLecture { order: Some(order), group_name, subgroup, name: lecture_name, teacher, classroom }
   }
 
-  fn assign_to_groups<I: Iterator<Item = RawLecture>>(self, lectures: I) -> Vec<Group> {
+  fn assign_to_groups<I: Iterator<Item = RawLecture>>(self, lectures: I, is_week_even: bool) -> Vec<Group> {
     let mut prev: Option<RawLecture> = None;
 
     let mut groups = self
@@ -121,15 +121,13 @@ impl ParserContext {
         if group.is_none() {
           return;
         }
-        let lectures = self.expand_raw_lecture(lecture);
+        let lectures = self.expand_raw_lecture(lecture, is_week_even);
         group.unwrap().push_lectures(lectures.into_iter());
       });
     groups
   }
 
-  fn expand_raw_lecture(&self, lecture: RawLecture) -> Vec<Lecture> {
-    let is_week_even = self.is_week_even;
-
+  fn expand_raw_lecture(&self, lecture: RawLecture, is_week_even: bool) -> Vec<Lecture> {
     if matches!(lecture.name.as_deref(), None | Some("По расписанию") | Some("по расписанию")) {
       if let Some(default_lecture) = self
         .default_lectures
