@@ -6,7 +6,7 @@ use serde::Serialize;
 
 use crate::snapshot::Lecture;
 
-#[derive(Serialize, Deserialize, Clone, Default)]
+#[derive(Serialize, Deserialize, Clone, Default, Debug)]
 pub struct DefaultLectures(Vec<DefaultGroup>);
 
 #[derive(Serialize, Deserialize, Clone, Default, PartialEq, Eq, Debug)]

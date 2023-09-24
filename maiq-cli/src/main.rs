@@ -1,3 +1,4 @@
+use maiq_parser_next::parser::ParserContext4;
 use maiq_parser_next::parser::PeriodicalParserBuilder;
 use maiq_parser_next::snapshot::*;
 
@@ -10,10 +11,12 @@ async fn main() {
   let (tx, mut rx) = mpsc::channel(32);
 
   let parser = PeriodicalParserBuilder::new()
-    .add_url("https://rsp.chemk.org/4korp/today.htm")
+    .with_today_url("https://rsp.chemk.org/4korp/today.htm")
     .unwrap()
+    // .with_next_url("http://rsp.chemk.org/4korp/tomorrow.htm")
+    // .unwrap()
     .on_update(tx)
-    .build()
+    .build::<ParserContext4>()
     .unwrap();
 
   _ = parser.start();

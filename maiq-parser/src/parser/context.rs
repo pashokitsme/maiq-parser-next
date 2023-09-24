@@ -3,6 +3,7 @@ use std::sync::Arc;
 
 use super::default_lectures::*;
 use super::table::*;
+use super::SnapshotParser;
 use crate::snapshot::*;
 use crate::utils::time::*;
 
@@ -29,29 +30,29 @@ struct RawLecture {
   classroom: Option<Box<str>>,
 }
 
-pub struct ParserContext {
+pub struct ParserContext4 {
   default_lectures: Arc<DefaultLectures>,
   fallback_date: DateTime,
   group_names: Vec<Box<str>>,
 }
 
-impl ParserContext {
-  pub fn new(fallback_date: DateTime) -> Self {
+impl SnapshotParser for ParserContext4 {
+  fn new(fallback_date: DateTime) -> Self {
     Self { default_lectures: Arc::from(DefaultLectures::default()), fallback_date, group_names: vec![] }
   }
 
-  pub fn with_default_lectures(self, lectures: Arc<DefaultLectures>) -> Self {
+  fn with_default_lectures(self, lectures: Arc<DefaultLectures>) -> Self {
     Self { default_lectures: lectures, ..self }
   }
 
-  pub fn with_groups<S: AsRef<str>, I: Iterator<Item = S>>(self, group_names: I) -> Self {
+  fn with_groups<S: AsRef<str>, I: Iterator<Item = S>>(self, group_names: I) -> Self {
     let group_names = group_names
       .map(|name| name.as_ref().into())
       .collect::<Vec<Box<str>>>();
     Self { group_names, ..self }
   }
 
-  pub fn parse(self, table: Table) -> Snapshot {
+  fn parse(self, table: Table) -> Snapshot {
     let mut rows = table.rows.into_iter();
     let date = parse_date(&mut rows).unwrap_or(self.fallback_date);
     let is_week_even = date.iso_week().week0() % 2 == 0;
@@ -61,7 +62,9 @@ impl ParserContext {
     groups.retain(|g| g.has_lectures());
     Snapshot::new(date, groups)
   }
+}
 
+impl ParserContext4 {
   fn parse_raw_lectures<S: AsRef<str>, I: Iterator<Item = Vec<S>> + Clone>(&self, rows: Peekable<I>) -> Vec<RawLecture> {
     let mut anchor = "Unknown".into();
     rows

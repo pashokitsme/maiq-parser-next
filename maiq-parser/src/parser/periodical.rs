@@ -1,3 +1,4 @@
+use std::marker::PhantomData;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -6,7 +7,7 @@ use tokio::time::Interval;
 use tokio_util::sync::CancellationToken;
 
 use super::default_lectures::DefaultLectures;
-use super::ParserContext;
+use super::SnapshotParser;
 use super::GROUP_NAMES;
 
 use crate::error::*;
@@ -23,7 +24,8 @@ type UpdateSender = mpsc::Sender<(Option<Snapshot>, Changes)>;
 
 #[derive(Default)]
 pub struct PeriodicalParserBuilder {
-  remote_url: Option<Url>,
+  today_remote_url: Option<Url>,
+  next_remote_url: Option<Url>,
   interval: Option<Interval>,
   default_lectures: Option<Arc<DefaultLectures>>,
   on_update: Option<UpdateSender>,
@@ -34,8 +36,12 @@ impl PeriodicalParserBuilder {
     Self::default()
   }
 
-  pub fn add_url<U: AsRef<str>>(self, url: U) -> Result<Self, url::ParseError> {
-    Ok(Self { remote_url: Some(url.as_ref().parse()?), ..self })
+  pub fn with_today_url<U: AsRef<str>>(self, url: U) -> Result<Self, url::ParseError> {
+    Ok(Self { today_remote_url: Some(url.as_ref().parse()?), ..self })
+  }
+
+  pub fn with_next_url<U: AsRef<str>>(self, url: U) -> Result<Self, url::ParseError> {
+    Ok(Self { next_remote_url: Some(url.as_ref().parse()?), ..self })
   }
 
   pub fn with_interval(self, interval: Duration) -> Self {
@@ -50,10 +56,9 @@ impl PeriodicalParserBuilder {
     Self { on_update: Some(on_update), ..self }
   }
 
-  pub fn build(self) -> Result<PeriodicalParser, ParserError> {
+  pub fn build<P: SnapshotParser + Send + Sync + 'static>(self) -> Result<PeriodicalParser<P>, ParserError> {
     Ok(PeriodicalParser {
       http_client: self.reqwest_client()?,
-      remote_url: self.remote_url.ok_or(BuilderError::UrlNotSet)?,
       interval: self
         .interval
         .unwrap_or_else(|| tokio::time::interval(Duration::from_secs(60 * 5))),
@@ -62,7 +67,11 @@ impl PeriodicalParserBuilder {
         Arc::from(DefaultLectures::default())
       }),
       on_update: self.on_update.unwrap(),
-      prev_snapshot: None,
+      today_remote_url: self.today_remote_url,
+      next_remote_url: self.next_remote_url,
+      prev_today_snapshot: None,
+      prev_next_snapshot: None,
+      _marker: PhantomData,
     })
   }
 
@@ -71,16 +80,20 @@ impl PeriodicalParserBuilder {
   }
 }
 
-pub struct PeriodicalParser {
-  remote_url: Url,
+#[derive(Debug)]
+pub struct PeriodicalParser<P: SnapshotParser + Send + Sync> {
   interval: Interval,
   default_lectures: Arc<DefaultLectures>,
   on_update: UpdateSender,
   http_client: Client,
-  prev_snapshot: Option<Snapshot>,
+  today_remote_url: Option<Url>,
+  next_remote_url: Option<Url>,
+  prev_today_snapshot: Option<Snapshot>,
+  prev_next_snapshot: Option<Snapshot>,
+  _marker: PhantomData<P>,
 }
 
-impl PeriodicalParser {
+impl<P: SnapshotParser + Send + Sync + 'static> PeriodicalParser<P> {
   pub fn start(self) -> CancellationToken {
     let token = CancellationToken::new();
     let out_token = token.clone();
@@ -89,21 +102,43 @@ impl PeriodicalParser {
     out_token
   }
 
+  pub fn latest_today(&self) -> Option<&Snapshot> {
+    self.prev_today_snapshot.as_ref()
+  }
+
+  pub fn latest_next(&self) -> Option<&Snapshot> {
+    self.prev_next_snapshot.as_ref()
+  }
+
   async fn main_loop(mut self, token: CancellationToken) {
     while !token.is_cancelled() {
       self.interval.tick().await;
-      let snapshot = self.parse(self.remote_url.clone()).await.ok();
-      let changes = self.prev_snapshot.as_ref().distinct(snapshot.as_ref(), &GROUP_NAMES);
-      self.prev_snapshot = snapshot.clone();
-      if let Err(err) = self.on_update.send((snapshot, changes)).await {
-        error!("can't send parsed snapshot: {:?}", err)
+
+      if let Some(url) = self.today_remote_url.as_ref().cloned() {
+        self.prev_today_snapshot = self.parse_and_notify(&url).await;
+      }
+
+      if let Some(url) = self.next_remote_url.as_ref().cloned() {
+        self.prev_next_snapshot = self.parse_and_notify(&url).await;
       }
     }
   }
 
+  async fn parse_and_notify(&mut self, url: &Url) -> Option<Snapshot> {
+    let snapshot = self.parse(url.clone()).await.ok();
+    let changes = self
+      .prev_today_snapshot
+      .as_ref()
+      .distinct(snapshot.as_ref(), &GROUP_NAMES);
+    if let Err(err) = self.on_update.send((snapshot.clone(), changes)).await {
+      error!("can't send parsed snapshot: {:?}", err)
+    }
+    snapshot
+  }
+
   async fn parse(&self, url: Url) -> Result<Snapshot, ParserError> {
     let table = self.fetch_table(url).await?.unwrap();
-    let parser = ParserContext::new(DateTime::now())
+    let parser = P::new(DateTime::now())
       .with_groups(GROUP_NAMES.iter())
       .with_default_lectures(self.default_lectures.clone());
     Ok(parser.parse(table))
