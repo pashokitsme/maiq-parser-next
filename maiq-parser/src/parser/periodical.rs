@@ -23,7 +23,7 @@ type Changes = Vec<String>;
 type UpdateSender = mpsc::Sender<(Option<Snapshot>, Changes)>;
 
 #[derive(Default)]
-pub struct PeriodicalParserBuilder {
+pub struct LoopSnapshotParserBuilder {
   today_remote_url: Option<Url>,
   next_remote_url: Option<Url>,
   interval: Option<Interval>,
@@ -31,7 +31,7 @@ pub struct PeriodicalParserBuilder {
   on_update: Option<UpdateSender>,
 }
 
-impl PeriodicalParserBuilder {
+impl LoopSnapshotParserBuilder {
   pub fn new() -> Self {
     Self::default()
   }
@@ -56,8 +56,8 @@ impl PeriodicalParserBuilder {
     Self { on_update: Some(on_update), ..self }
   }
 
-  pub fn build<P: SnapshotParser + Send + Sync + 'static>(self) -> Result<PeriodicalParser<P>, ParserError> {
-    Ok(PeriodicalParser {
+  pub fn build<P: SnapshotParser + Send + Sync + 'static>(self) -> Result<LoopSnapshotParser<P>, ParserError> {
+    Ok(LoopSnapshotParser {
       http_client: self.reqwest_client()?,
       interval: self
         .interval
@@ -81,7 +81,7 @@ impl PeriodicalParserBuilder {
 }
 
 #[derive(Debug)]
-pub struct PeriodicalParser<P: SnapshotParser + Send + Sync> {
+pub struct LoopSnapshotParser<P: SnapshotParser + Send + Sync> {
   interval: Interval,
   default_lectures: Arc<DefaultLectures>,
   on_update: UpdateSender,
@@ -93,7 +93,7 @@ pub struct PeriodicalParser<P: SnapshotParser + Send + Sync> {
   _marker: PhantomData<P>,
 }
 
-impl<P: SnapshotParser + Send + Sync + 'static> PeriodicalParser<P> {
+impl<P: SnapshotParser + Send + Sync + 'static> LoopSnapshotParser<P> {
   pub fn start(self) -> CancellationToken {
     let token = CancellationToken::new();
     let out_token = token.clone();

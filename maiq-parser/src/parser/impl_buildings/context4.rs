@@ -1,13 +1,13 @@
 use std::iter::Peekable;
 use std::sync::Arc;
 
-use super::default_lectures::*;
-use super::table::*;
-use super::SnapshotParser;
+use crate::parser::SnapshotParser;
+
+use crate::parser::default_lectures::*;
+use crate::parser::parse_date::*;
+use crate::parser::table::*;
 use crate::snapshot::*;
 use crate::utils::time::*;
-
-use super::parse_date::parse_date;
 
 macro_rules! empty_to_none {
   ($e: expr) => {
@@ -30,13 +30,13 @@ struct RawLecture {
   classroom: Option<Box<str>>,
 }
 
-pub struct ParserContext4 {
+pub struct SnapshotParser4 {
   default_lectures: Arc<DefaultLectures>,
   fallback_date: DateTime,
   group_names: Vec<Box<str>>,
 }
 
-impl SnapshotParser for ParserContext4 {
+impl SnapshotParser for SnapshotParser4 {
   fn new(fallback_date: DateTime) -> Self {
     Self { default_lectures: Arc::from(DefaultLectures::default()), fallback_date, group_names: vec![] }
   }
@@ -64,7 +64,7 @@ impl SnapshotParser for ParserContext4 {
   }
 }
 
-impl ParserContext4 {
+impl SnapshotParser4 {
   fn parse_raw_lectures<S: AsRef<str>, I: Iterator<Item = Vec<S>> + Clone>(&self, rows: Peekable<I>) -> Vec<RawLecture> {
     let mut anchor = "Unknown".into();
     rows

@@ -1,5 +1,4 @@
-use maiq_parser_next::parser::ParserContext4;
-use maiq_parser_next::parser::PeriodicalParserBuilder;
+use maiq_parser_next::parser::*;
 use maiq_parser_next::snapshot::*;
 
 use tokio::sync::mpsc;
@@ -10,13 +9,13 @@ use owo_colors::OwoColorize;
 async fn main() {
   let (tx, mut rx) = mpsc::channel(32);
 
-  let parser = PeriodicalParserBuilder::new()
+  let parser = LoopSnapshotParserBuilder::new()
     .with_today_url("https://rsp.chemk.org/4korp/today.htm")
     .unwrap()
     // .with_next_url("http://rsp.chemk.org/4korp/tomorrow.htm")
     // .unwrap()
     .on_update(tx)
-    .build::<ParserContext4>()
+    .build::<SnapshotParser4>()
     .unwrap();
 
   _ = parser.start();
