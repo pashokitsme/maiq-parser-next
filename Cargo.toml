@@ -1,9 +1,13 @@
 [workspace]
+
 resolver = "2"
-members = ["maiq-cli", "maiq-parser"]
+members = ["maiq-bot", "maiq-cli", "maiq-parser"]
 
 [workspace.package]
+license = "MPL-2.0"
+repository = "https://github.com/pashokitsme/maiq-bot"
 edition = "2021"
+authors = ["pashokitsme <t.me/pashokitsme"]
 
 [profile.release]
 panic = "abort"
