@@ -3,6 +3,8 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use tokio::sync::mpsc;
+use tokio::sync::mpsc::Receiver;
+use tokio::sync::mpsc::Sender;
 use tokio::time::Interval;
 use tokio_util::sync::CancellationToken;
 
@@ -20,7 +22,7 @@ use reqwest::Client;
 use url::Url;
 
 type Changes = Vec<String>;
-type UpdateSender = mpsc::Sender<(Option<Snapshot>, Changes)>;
+type UpdateCallback = Result<(Snapshot, Changes), ParserError>;
 
 #[derive(Default)]
 pub struct LoopSnapshotParserBuilder {
@@ -28,7 +30,6 @@ pub struct LoopSnapshotParserBuilder {
   next_remote_url: Option<Url>,
   interval: Option<Interval>,
   default_lectures: Option<Arc<DefaultLectures>>,
-  on_update: Option<UpdateSender>,
 }
 
 impl LoopSnapshotParserBuilder {
@@ -52,12 +53,11 @@ impl LoopSnapshotParserBuilder {
     Self { default_lectures: Some(Arc::from(lectures)), ..self }
   }
 
-  pub fn on_update(self, on_update: UpdateSender) -> Self {
-    Self { on_update: Some(on_update), ..self }
-  }
-
-  pub fn build<P: SnapshotParser + Send + Sync + 'static>(self) -> Result<LoopSnapshotParser<P>, ParserError> {
-    Ok(LoopSnapshotParser {
+  pub fn build<P: SnapshotParser + Send + Sync + 'static>(
+    self,
+  ) -> Result<(LoopSnapshotParser<P>, Receiver<UpdateCallback>), ParserError> {
+    let (tx, rx) = mpsc::channel(8);
+    let parser = LoopSnapshotParser {
       http_client: self.reqwest_client()?,
       interval: self
         .interval
@@ -66,13 +66,15 @@ impl LoopSnapshotParserBuilder {
         warn!("default lectures not set");
         Arc::from(DefaultLectures::default())
       }),
-      on_update: self.on_update.unwrap(),
+      on_update: tx,
       today_remote_url: self.today_remote_url,
       next_remote_url: self.next_remote_url,
       prev_today_snapshot: None,
       prev_next_snapshot: None,
       _marker: PhantomData,
-    })
+    };
+
+    Ok((parser, rx))
   }
 
   fn reqwest_client(&self) -> reqwest::Result<Client> {
@@ -84,7 +86,7 @@ impl LoopSnapshotParserBuilder {
 pub struct LoopSnapshotParser<P: SnapshotParser + Send + Sync> {
   interval: Interval,
   default_lectures: Arc<DefaultLectures>,
-  on_update: UpdateSender,
+  on_update: Sender<UpdateCallback>,
   http_client: Client,
   today_remote_url: Option<Url>,
   next_remote_url: Option<Url>,
@@ -115,29 +117,36 @@ impl<P: SnapshotParser + Send + Sync + 'static> LoopSnapshotParser<P> {
       self.interval.tick().await;
 
       if let Some(url) = self.today_remote_url.as_ref().cloned() {
-        self.prev_today_snapshot = self.parse_and_notify(&url).await;
+        self.prev_today_snapshot = self.parse_and_notify(&url).await.ok();
       }
 
       if let Some(url) = self.next_remote_url.as_ref().cloned() {
-        self.prev_next_snapshot = self.parse_and_notify(&url).await;
+        self.prev_next_snapshot = self.parse_and_notify(&url).await.ok();
       }
     }
   }
 
-  async fn parse_and_notify(&mut self, url: &Url) -> Option<Snapshot> {
-    let snapshot = self.parse(url.clone()).await.ok();
+  async fn parse_and_notify(&mut self, url: &Url) -> Result<Snapshot, ParserError> {
+    let snapshot = self.parse(url.clone()).await;
+
+    if let Err(ref err) = snapshot {
+      error!("can't parse snapshot from {}: {:?}", url.as_str(), err);
+    }
+
     let changes = self
       .prev_today_snapshot
       .as_ref()
-      .distinct(snapshot.as_ref(), &GROUP_NAMES);
-    if let Err(err) = self.on_update.send((snapshot.clone(), changes)).await {
+      .distinct(snapshot.as_ref().ok(), &GROUP_NAMES);
+
+    if let Err(err) = self.on_update.send(snapshot.clone().map(|s| (s, changes))).await {
       error!("can't send parsed snapshot: {:?}", err)
     }
+
     snapshot
   }
 
   async fn parse(&self, url: Url) -> Result<Snapshot, ParserError> {
-    let table = self.fetch_table(url).await?.unwrap();
+    let table = self.fetch_table(url).await?.ok_or(ParserError::NoHtmlTable)?;
     let parser = P::new(DateTime::now())
       .with_groups(GROUP_NAMES.iter())
       .with_default_lectures(self.default_lectures.clone());
