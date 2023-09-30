@@ -26,3 +26,7 @@ pub trait SnapshotParser {
   fn with_default_lectures(self, lectures: Arc<DefaultLectures>) -> Self;
   fn parse(self, table: Table) -> Snapshot;
 }
+
+pub fn builder() -> LoopSnapshotParserBuilder {
+  LoopSnapshotParserBuilder::new()
+}

@@ -22,7 +22,7 @@ use reqwest::Client;
 use url::Url;
 
 type Changes = Vec<String>;
-type UpdateCallback = Result<(Snapshot, Changes), ParserError>;
+type UpdateCallback = Result<(Snapshot, Changes), Error>;
 
 #[derive(Default)]
 pub struct LoopSnapshotParserBuilder {
@@ -55,7 +55,7 @@ impl LoopSnapshotParserBuilder {
 
   pub fn build<P: SnapshotParser + Send + Sync + 'static>(
     self,
-  ) -> Result<(LoopSnapshotParser<P>, Receiver<UpdateCallback>), ParserError> {
+  ) -> Result<(LoopSnapshotParser<P>, Receiver<UpdateCallback>), Error> {
     let (tx, rx) = mpsc::channel(8);
     let parser = LoopSnapshotParser {
       http_client: self.reqwest_client()?,
@@ -126,7 +126,7 @@ impl<P: SnapshotParser + Send + Sync + 'static> LoopSnapshotParser<P> {
     }
   }
 
-  async fn parse_and_notify(&mut self, url: &Url) -> Result<Snapshot, ParserError> {
+  async fn parse_and_notify(&mut self, url: &Url) -> Result<Snapshot, Error> {
     let snapshot = self.parse(url.clone()).await;
 
     if let Err(ref err) = snapshot {
@@ -145,8 +145,8 @@ impl<P: SnapshotParser + Send + Sync + 'static> LoopSnapshotParser<P> {
     snapshot
   }
 
-  async fn parse(&self, url: Url) -> Result<Snapshot, ParserError> {
-    let table = self.fetch_table(url).await?.ok_or(ParserError::NoHtmlTable)?;
+  async fn parse(&self, url: Url) -> Result<Snapshot, Error> {
+    let table = self.fetch_table(url).await?.ok_or(Error::NoHtmlTable)?;
     let parser = P::new(DateTime::now())
       .with_groups(GROUP_NAMES.iter())
       .with_default_lectures(self.default_lectures.clone());

@@ -2,13 +2,13 @@ use serde::Deserialize;
 use serde::Serialize;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
-pub enum ParserError {
+pub enum Error {
   Network(String),
   NoHtmlTable,
 }
 
-impl From<reqwest::Error> for ParserError {
+impl From<reqwest::Error> for Error {
   fn from(value: reqwest::Error) -> Self {
-    ParserError::Network(value.without_url().to_string())
+    Error::Network(value.without_url().to_string())
   }
 }
