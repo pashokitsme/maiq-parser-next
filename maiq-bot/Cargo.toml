@@ -13,6 +13,7 @@ teloxide = { version = "0.12.2", features = [
   "bincode",
   "bincode-serializer",
 ] }
+maiq-parser-next = { path = "../maiq-parser" }
 
 log = "0.4.20"
 dotenvy = "0.15.7"
@@ -21,6 +22,7 @@ fastrand = "2.0.1"
 bincode = "1.3.3"
 color-eyre = "0.6.2"
 env_logger = "0.10.0"
+serde = { version = "1.0.188", features = ["derive"] }
 
 [dev-dependencies]
 rstest = "0.18.2"

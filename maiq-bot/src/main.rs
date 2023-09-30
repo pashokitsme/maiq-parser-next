@@ -6,5 +6,6 @@ async fn main() {
   dotenvy::dotenv().ok();
   logger::init_logger(false);
 
-  maiq_bot::setup_bot().await.unwrap();
+  let bot = maiq_bot::setup_bot().await.unwrap();
+  maiq_bot::start(bot).await;
 }
