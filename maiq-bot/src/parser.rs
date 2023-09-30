@@ -1,6 +1,4 @@
-use maiq_parser_next::parser;
-use maiq_parser_next::parser::SnapshotParser4;
-use maiq_parser_next::snapshot::Snapshot;
+use maiq_parser_next::prelude::*;
 use teloxide::prelude::*;
 
 use crate::Result;
@@ -10,7 +8,7 @@ pub fn start_background(bot: Bot) {
 }
 
 async fn start(bot: Bot) -> Result<()> {
-  let (parser, mut rx) = parser::builder()
+  let (parser, mut rx) = parser_builder()
     .with_today_url("https://rsp.chemk.org/4korp/today.htm")
     .unwrap()
     .with_next_url("https://rsp.chemk.org/4korp/today.htm")

@@ -27,6 +27,6 @@ pub trait SnapshotParser {
   fn parse(self, table: Table) -> Snapshot;
 }
 
-pub fn builder() -> LoopSnapshotParserBuilder {
+pub fn parser_builder() -> LoopSnapshotParserBuilder {
   LoopSnapshotParserBuilder::new()
 }
