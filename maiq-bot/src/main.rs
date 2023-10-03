@@ -6,6 +6,7 @@ async fn main() {
   dotenvy::dotenv().ok();
   logger::init_logger(false);
 
-  let bot = maiq_bot::setup_bot().await.unwrap();
-  maiq_bot::start(bot).await;
+  let bot = maiq_bot::setup_bot().await.expect("unable to setup bot");
+  let parser = maiq_bot::setup_parser().expect("unable to setup parser");
+  maiq_bot::start(bot, parser).await;
 }

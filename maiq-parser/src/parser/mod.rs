@@ -20,13 +20,13 @@ use crate::snapshot::*;
 use crate::utils::time::DateTime;
 use std::sync::Arc;
 
-pub trait SnapshotParser {
+pub trait Parser {
   fn new(fallback_date: DateTime) -> Self;
   fn with_groups<S: AsRef<str>, I: Iterator<Item = S>>(self, group_names: I) -> Self;
   fn with_default_lectures(self, lectures: Arc<DefaultLectures>) -> Self;
   fn parse(self, table: Table) -> Snapshot;
 }
 
-pub fn parser_builder() -> LoopSnapshotParserBuilder {
-  LoopSnapshotParserBuilder::new()
+pub fn parser_builder() -> SnapshotParserBuilder {
+  SnapshotParserBuilder::new()
 }

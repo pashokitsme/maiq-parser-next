@@ -7,7 +7,7 @@ members = ["maiq-bot", "maiq-cli", "maiq-parser"]
 license = "MPL-2.0"
 repository = "https://github.com/pashokitsme/maiq-bot"
 edition = "2021"
-authors = ["pashokitsme <t.me/pashokitsme"]
+authors = ["pashokitsme <t.me/pashokitsme>"]
 
 [profile.release]
 panic = "abort"

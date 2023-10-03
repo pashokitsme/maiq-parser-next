@@ -1,10 +1,16 @@
 mod commands;
+mod context;
 mod error;
+mod format;
 mod parser;
+
+use maiq_parser_next::prelude::*;
+use parser::start_parser_service;
+use teloxide::dptree::deps;
+use teloxide::prelude::*;
 
 use commands::Command;
 use commands::DeveloperCommand;
-use teloxide::prelude::*;
 
 use dptree as dp;
 use teloxide::dispatching::UpdateHandler;
@@ -16,6 +22,7 @@ extern crate log;
 pub use error::Error;
 
 pub type Result<T> = std::result::Result<T, Error>;
+pub type SnapshotParserImpl = SnapshotParser4;
 
 pub const DEVELOPER_ID: u64 = 949248728;
 
@@ -30,12 +37,23 @@ pub async fn setup_bot() -> Result<Bot> {
   Ok(bot)
 }
 
-pub async fn start(bot: Bot) {
-  parser::start_background(bot.clone());
+pub fn setup_parser() -> Result<ParserPair<SnapshotParserImpl>> {
+  let parser = parser_builder()
+    .with_today_url("https://rsp.chemk.org/4korp/today.htm")
+    .unwrap()
+    .with_next_url("https://rsp.chemk.org/4korp/today.htm")
+    .unwrap()
+    .build()?;
+  Ok(parser)
+}
+
+pub async fn start(bot: Bot, parser: ParserPair<SnapshotParserImpl>) {
+  let parser = start_parser_service(bot.clone(), parser);
 
   Dispatcher::builder(bot, distatch_tree())
     .enable_ctrlc_handler()
     .worker_queue_size(16)
+    .dependencies(deps![parser])
     .build()
     .dispatch()
     .await

@@ -17,7 +17,7 @@ pub fn parse_date<S: AsRef<str>, T: Iterator<Item = Vec<S>>>(row: &mut T) -> Opt
       .next()
       .and_then(|month| MONTHS.iter().position(|&m| m == month).map(|x| x as u32 + 1))
     {
-      return DateTime::now()
+      return DateTime::now_date()
         .with_day(day)
         .and_then(|date| date.with_month(month).unwrap().with_nanosecond(0));
     }
@@ -35,13 +35,12 @@ mod tests {
   #[case(vec![vec!["Стваыф 5 июля авыфавыф".into()]], (5, 7))]
   #[case(vec![vec!["АВыфавыф 24 февраля fdjska sadf".into()]], (24, 2))]
   fn simple(#[case] raw: Vec<Vec<String>>, #[case] expect: (u32, u32)) {
-    let expect = DateTime::now()
+    let expect = DateTime::now_date()
       .with_day(expect.0)
       .unwrap()
       .with_month(expect.1)
-      .unwrap()
-      .with_nanosecond(0)
       .unwrap();
+
     assert_eq!(parse_date(&mut raw.into_iter()), Some(expect));
   }
 

@@ -1,7 +1,7 @@
 use std::iter::Peekable;
 use std::sync::Arc;
 
-use crate::parser::SnapshotParser;
+use crate::parser::Parser;
 
 use crate::parser::default_lectures::*;
 use crate::parser::parse_date::*;
@@ -36,7 +36,7 @@ pub struct SnapshotParser4 {
   group_names: Vec<Box<str>>,
 }
 
-impl SnapshotParser for SnapshotParser4 {
+impl Parser for SnapshotParser4 {
   fn new(fallback_date: DateTime) -> Self {
     Self { default_lectures: Arc::from(DefaultLectures::default()), fallback_date, group_names: vec![] }
   }
@@ -216,7 +216,7 @@ fn split_teacher<S: AsRef<str>>(raw: Option<S>) -> (Option<Box<str>>, Option<Box
   };
 
   if let Some((name, teacher)) = raw.as_ref().rsplit_once(',') {
-    return (Some(name.into()), empty_to_none!(Some(teacher.trim())));
+    return (Some(name.trim().into()), empty_to_none!(Some(teacher.trim())));
   }
   (empty_to_none!(Some(raw.as_ref())), None)
 }
