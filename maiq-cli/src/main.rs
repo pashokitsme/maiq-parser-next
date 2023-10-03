@@ -1,3 +1,5 @@
+use std::env;
+
 use maiq_parser_next::parser::*;
 use maiq_parser_next::snapshot::*;
 
@@ -5,14 +7,20 @@ use owo_colors::OwoColorize;
 
 #[tokio::main]
 async fn main() {
-  let (parser, mut rx) = LoopSnapshotParserBuilder::new()
+  let (mut parser, mut rx) = SnapshotParserBuilder::new()
     .with_today_url("https://rsp.chemk.org/4korp/today.htm")
     .unwrap()
     .build::<SnapshotParser4>()
     .unwrap();
 
-  _ = parser.start();
+  parser.check().await;
+
   let (snapshot, _) = rx.recv().await.unwrap().unwrap();
+
+  if env::args().len() > 1 {
+    print_group(snapshot.group(&env::args().nth(1).unwrap()).expect("no such group"));
+    return;
+  }
   print_snapshot(&snapshot);
 }
 
