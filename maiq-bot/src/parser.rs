@@ -7,12 +7,10 @@ use maiq_parser_next::prelude::*;
 use teloxide::prelude::*;
 use tokio::sync::RwLock;
 
-// pub fn start_background(parser: Parser<SnapshotParser4>) {}
-
 pub fn start_parser_service(bot: Bot, parser: ParserPair<SnapshotParserImpl>) -> Arc<RwLock<SnapshotParser<SnapshotParserImpl>>> {
   let mut rx = parser.1;
   let parser = Arc::new(RwLock::new(parser.0));
-  let parser_looped = LoopedSnapshotParser::with_interval(parser.clone(), Duration::from_secs(10));
+  let parser_looped = LoopedSnapshotParser::with_interval(parser.clone(), Duration::from_secs(1000));
   tokio::spawn(async move { parser_looped.start().await });
   tokio::spawn(async move {
     while let Some(update) = rx.recv().await {
@@ -28,8 +26,8 @@ pub fn start_parser_service(bot: Bot, parser: ParserPair<SnapshotParserImpl>) ->
 }
 
 async fn on_update(_bot: &Bot, snapshot: Snapshot, changes: Vec<String>) {
-  info!(target: "parser", "{:?}", snapshot);
-  info!(target: "parser", "changes: {:?}", changes);
+  // info!(target: "parser", "{:?}", snapshot);
+  info!(target: "parser", "snapshot: {} changes: {:?}", snapshot.id(), changes);
 }
 
 async fn on_error(_bot: &Bot, err: maiq_parser_next::error::Error) {

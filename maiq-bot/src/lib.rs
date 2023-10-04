@@ -1,16 +1,22 @@
+#![allow(incomplete_features)]
+#![feature(async_fn_in_trait)]
+
 mod commands;
 mod context;
 mod error;
 mod format;
 mod parser;
 
+use std::sync::Arc;
+use tokio::sync::RwLock;
+
+use context::Handler;
 use maiq_parser_next::prelude::*;
 use parser::start_parser_service;
 use teloxide::dptree::deps;
 use teloxide::prelude::*;
 
-use commands::Command;
-use commands::DeveloperCommand;
+use commands::*;
 
 use dptree as dp;
 use teloxide::dispatching::UpdateHandler;
@@ -23,6 +29,7 @@ pub use error::Error;
 
 pub type Result<T> = std::result::Result<T, Error>;
 pub type SnapshotParserImpl = SnapshotParser4;
+pub type SnapshotParser = Arc<RwLock<maiq_parser_next::prelude::SnapshotParser<SnapshotParserImpl>>>;
 
 pub const DEVELOPER_ID: u64 = 949248728;
 
@@ -41,7 +48,7 @@ pub fn setup_parser() -> Result<ParserPair<SnapshotParserImpl>> {
   let parser = parser_builder()
     .with_today_url("https://rsp.chemk.org/4korp/today.htm")
     .unwrap()
-    .with_next_url("https://rsp.chemk.org/4korp/today.htm")
+    .with_next_url("https://rsp.chemk.org/4korp/tomorrow.htm")
     .unwrap()
     .build()?;
   Ok(parser)
@@ -92,23 +99,20 @@ fn distatch_tree() -> UpdateHandler<Error> {
   dp::entry().branch(
     Update::filter_message()
       .filter(|msg: Message| msg.text().is_some())
+      .map(Handler::new)
       .chain(
         dp::entry()
-          .branch(dp::entry().filter_command::<Command>().endpoint(ping))
           .branch(
             dp::entry()
+              .filter_command::<Command>()
+              .endpoint(Command::execute::<Handler>),
+          )
+          .branch(
+            dp::entry()
+              .filter(|msg: Message| msg.from().map(|user| user.id.0 == DEVELOPER_ID).unwrap_or(false))
               .filter_command::<DeveloperCommand>()
-              .endpoint(ping)
-              .endpoint(ping),
+              .endpoint(DeveloperCommand::execute::<Handler>),
           ),
       ),
   )
-}
-
-async fn ping(bot: Bot, msg: Message) -> Result<()> {
-  bot
-    .send_message(msg.chat.id, msg.text().unwrap())
-    .reply_to_message_id(msg.id)
-    .await?;
-  Ok(())
 }
