@@ -8,7 +8,7 @@ use owo_colors::OwoColorize;
 #[tokio::main]
 async fn main() {
   let (mut parser, mut rx) = SnapshotParserBuilder::new()
-    .with_today_url("https://rsp.chemk.org/4korp/today.htm")
+    .with_next_url("https://rsp.chemk.org/4korp/tomorrow.htm")
     .unwrap()
     .build::<SnapshotParser4>()
     .unwrap();

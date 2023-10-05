@@ -18,16 +18,12 @@ macro_rules! cmds {
     #[derive(BotCommands, Clone, PartialEq, Debug)]
     #[command(rename_rule = "snake_case")]
     pub enum DeveloperCommand {
-      $(
-        $dev_name$(($($dev_tt),*))?
-      ),*
+      $($dev_name$(($($dev_tt),*))?),*
     }
 
     pub trait Commands {
       fn executor(&self) -> String;
-      $(
-        async fn $fn_name(&self, $($($arg: $tt),*)?) -> Result<()>;
-      )*
+      $(async fn $fn_name(&self, $($($arg: $tt),*)?) -> Result<()>;)*
     }
 
     pub trait DeveloperCommands {
@@ -39,9 +35,7 @@ macro_rules! cmds {
       pub async fn execute<C: Commands>(self, executor: C) -> Result<()> {
         info!(target: "command", "executing: {:?}; executor: {}", self, executor.executor());
         match self {
-          $(
-            Command::$name$(($($arg),*))? => executor.$fn_name($($($arg),*)?).await?
-          ),*
+          $(Command::$name$(($($arg),*))? => executor.$fn_name($($($arg),*)?).await?),*
         }
         Ok(())
       }

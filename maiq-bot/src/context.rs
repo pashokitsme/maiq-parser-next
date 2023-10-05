@@ -75,12 +75,26 @@ impl Commands for Handler {
       self
         .reply(FormatSnapshot::select_group(snapshot, "Ир3-21").unwrap().to_string())
         .await?;
+    } else {
+      self.reply("Нет расписания").await?;
     }
     Ok(())
   }
 
   async fn next(&self) -> Result<()> {
-    todo!()
+    if let Some(snapshot) = self.parser.read().await.latest_next() {
+      self
+        .reply(
+          FormatSnapshot::select_group(snapshot, "Ир3-21")
+            .map(|s| s.to_string())
+            .unwrap_or("Нет расписания".into()),
+        )
+        .await?;
+    } else {
+      self.reply("Нет расписания").await?;
+    }
+
+    Ok(())
   }
 }
 
