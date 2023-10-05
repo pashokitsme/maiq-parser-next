@@ -1,4 +1,4 @@
-name: Run tests
+name: Run lint & tests
 
 on:
   push:
@@ -12,12 +12,11 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v4
-      - name: Set toolchain
+      - name: Setup
         run: rustup override set nightly
-      - name: Build
-        run: cargo build
-      - name: Tests
-        run: cargo test --package maiq-parser-next --lib
+      - name: Linting
+        run: cargo clippy --no-deps -- -Dwarnings
+      - name: Testing
+        run: cargo test --package maiq-parser-next --tests
