@@ -14,9 +14,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - name: Setup
-        run: rustup override set nightly
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+          override: true
+          components: clippy
+
       - name: Linting
         run: cargo clippy --no-deps -- -Dwarnings
+
       - name: Testing
         run: cargo test --package maiq-parser-next --tests
