@@ -15,7 +15,9 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+      - name: Set toolchain
+        run: rustup override set nightly
       - name: Build
         run: cargo build
       - name: Tests
-        run: cargo +nightly test --package maiq-parser-next --lib
+        run: cargo test --package maiq-parser-next --lib
