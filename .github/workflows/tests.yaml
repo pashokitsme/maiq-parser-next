@@ -19,7 +19,7 @@ jobs:
       - name: Setup toolchain
         run: |
           rustup override set nightly
-          rustup components add clippy
+          rustup component add clippy
 
       - name: Linting
         run: cargo clippy --no-deps -- -Dwarnings
