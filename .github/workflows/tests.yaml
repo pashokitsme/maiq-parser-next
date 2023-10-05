@@ -13,14 +13,13 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - name: Setup
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: nightly
-          override: true
-          components: clippy
+      - name: Setup toolchain
+        run: |
+          rustup override set nightly
+          rustup components add clippy
 
       - name: Linting
         run: cargo clippy --no-deps -- -Dwarnings
