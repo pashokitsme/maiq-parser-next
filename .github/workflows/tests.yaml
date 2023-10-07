@@ -12,6 +12,9 @@ env:
 jobs:
   tests:
     runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: ${{ secrets.SQLX_DATABASE }}
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
