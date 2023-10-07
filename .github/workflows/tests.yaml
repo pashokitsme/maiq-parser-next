@@ -26,6 +26,14 @@ jobs:
           components: clippy
           override: true
 
+      - name: Setup sqlx-cli
+        uses: baptiste0928/cargo-install@v2
+        with:
+          crate: sqlx-cli
+
+      - name: Reset database
+        run: cargo sqlx database reset -y -D ${{ secrets.SQLX_DATABASE }}
+
       - name: Linting
         run: cargo clippy --all-features --no-deps -- -Dwarnings
 
