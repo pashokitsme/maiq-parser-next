@@ -32,7 +32,7 @@ jobs:
           crate: sqlx-cli
 
       - name: Reset database
-        run: cargo sqlx database reset --source maiq-db -y -D ${{ secrets.SQLX_DATABASE }}
+        run: cargo sqlx database reset --source maiq-db/migrations -y -D ${{ secrets.SQLX_DATABASE }}
 
       - name: Linting
         run: cargo clippy --all-features --no-deps -- -Dwarnings
