@@ -9,3 +9,12 @@ license = { workspace = true }
 [lib]
 
 [dependencies]
+tokio = { version = "1.32.0", features = ["rt-multi-thread"] }
+sqlx = { version = "0.7.2", features = [
+  "runtime-tokio-rustls",
+  "postgres",
+  "chrono",
+] }
+chrono = "0.4.31"
+getset = "0.1.2"
+log = "0.4.20"

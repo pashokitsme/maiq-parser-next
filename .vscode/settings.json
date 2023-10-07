@@ -1,4 +1,7 @@
 {
 	"rust-analyzer.cargo.autoreload": true,
-	"rust-analyzer.check.allTargets": true
+	"rust-analyzer.check.allTargets": true,
+	"rust-analyzer.cargo.extraEnv": {
+		"DATABASE_URL": "postgres://postgres:123@localhost:5432"
+	}
 }

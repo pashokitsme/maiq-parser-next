@@ -7,6 +7,7 @@ async fn main() {
   logger::init_logger(false);
 
   let bot = maiq_bot::setup_bot().await.expect("unable to setup bot");
+  let pool = maiq_db::pool().await.expect("unable to setup db");
   let parser = maiq_bot::setup_parser().expect("unable to setup parser");
-  maiq_bot::start(bot, parser).await;
+  maiq_bot::start(bot, pool, parser).await;
 }
