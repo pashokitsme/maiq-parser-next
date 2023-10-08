@@ -3,7 +3,7 @@ use std::slice::Iter;
 use crate::utils::*;
 use getset::*;
 
-#[derive(Getters, CopyGetters, MutGetters, Debug)]
+#[derive(Getters, CopyGetters, MutGetters, Clone, Debug)]
 pub struct User {
   #[getset(get_copy = "pub")]
   pub(crate) id: u64,
@@ -36,7 +36,7 @@ impl User {
   }
 }
 
-#[derive(CopyGetters, Getters, Setters, Default, Debug)]
+#[derive(CopyGetters, Getters, Setters, Default, Clone, Debug)]
 pub struct Config {
   #[getset(get_copy = "pub", set = "pub")]
   pub(crate) is_notifies_enabled: bool,
