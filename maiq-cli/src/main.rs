@@ -1,12 +1,19 @@
 use std::env;
 
-use maiq_parser_next::parser::*;
-use maiq_parser_next::snapshot::*;
+// use maiq_db::pool;
+use maiq_parser_next::prelude::*;
+
+// use maiq_db::models::*;
+// use maiq_db::queries::*;
 
 use owo_colors::OwoColorize;
 
 #[tokio::main]
 async fn main() {
+  pretty_env_logger::init();
+  // let pool = pool().await.unwrap();
+  // let user = User::get_by_id_or_create(949248728, &pool).await;
+  // dbg!(user);
   let (mut parser, mut rx) = SnapshotParserBuilder::new()
     .with_next_url("https://rsp.chemk.org/4korp/tomorrow.htm")
     .unwrap()

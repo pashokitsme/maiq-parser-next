@@ -1,9 +1,13 @@
 use std::ops::Deref;
+use std::sync::Arc;
 
 use crate::commands::*;
 use crate::format::*;
 use crate::Result;
 use crate::SnapshotParser;
+
+use maiq_db::models::*;
+use maiq_db::Pool;
 
 use teloxide::payloads::SendMessage;
 use teloxide::prelude::*;
@@ -12,13 +16,21 @@ use teloxide::requests::JsonRequest;
 #[derive(Clone)]
 pub struct Handler {
   bot: Bot,
+  user: User,
   message: Message,
   parser: SnapshotParser,
+  pool: Arc<Pool>,
 }
 
 impl Handler {
-  pub fn new(bot: Bot, message: Message, parser: SnapshotParser) -> Self {
-    Self { bot, message, parser }
+  pub async fn new(bot: Bot, message: Message, parser: SnapshotParser, pool: Arc<Pool>) -> Option<Self> {
+    match User::get_by_id_or_create(message.chat.id.0, &pool).await {
+      Ok(user) => Some(Self { bot, message, parser, user, pool }),
+      Err(err) => {
+        error!(target: "commands", "can't query user model id {}; error: {:?}", message.chat.id.0, err);
+        None
+      }
+    }
   }
 
   fn executor(&self) -> String {
@@ -57,7 +69,7 @@ impl Commands for Handler {
 
   async fn start(&self, arg1: String, arg2: i32) -> Result<()> {
     self
-      .send_message(self.message.chat.id, format!("arg: {arg1}; arg2: {arg2}"))
+      .send_message(self.message.chat.id, format!("arg1: {}; created at: {}", arg1, self.user.created_at()))
       .await?;
     Ok(())
   }

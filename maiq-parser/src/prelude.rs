@@ -1,4 +1,5 @@
 pub use crate::parser::impl_buildings::SnapshotParser4;
+pub use crate::parser::SnapshotParserBuilder;
 
 pub use crate::parser::LoopedParserPair;
 pub use crate::parser::ParserPair;

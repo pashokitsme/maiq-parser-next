@@ -100,7 +100,7 @@ fn distatch_tree() -> UpdateHandler<Error> {
   dp::entry().branch(
     Update::filter_message()
       .filter(|msg: Message| msg.text().is_some())
-      .map(Handler::new)
+      .filter_map_async(Handler::new)
       .chain(
         dp::entry()
           .branch(

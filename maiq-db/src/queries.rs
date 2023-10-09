@@ -1,35 +1,34 @@
-use chrono::FixedOffset;
+use log::*;
 use sqlx::*;
 
-use crate::models::Config;
-use crate::models::User;
+use crate::models::*;
 use crate::utils::*;
 use crate::Db;
+use crate::Result;
 
 impl User {
   pub async fn insert(self, pool: &Pool<Db>) -> Result<Self> {
-    sqlx::query!(
-      "insert into users (id, cached_fullname, modified_at, created_at) values ($1, $2, $3, $4)",
-      self.id as i64,
-      self.cached_fullname(),
-      self.modified_at.naive_utc(),
-      self.created_at.naive_utc()
-    )
-    .execute(pool)
-    .await?;
+    info!(target:"db", "inserting new user id {}", self.chat_id);
+    sqlx::query_file!("sql/insert_new_user.sql", self.chat_id, self.cached_fullname)
+      .execute(pool)
+      .await?;
     Ok(self)
   }
 
-  pub async fn get_by_id<'c>(id: u64, pool: &Pool<Db>) -> Result<Self> {
-    let row = sqlx::query_file!("sql/get_user_by_id.sql", id as i64)
-      .fetch_one(pool)
-      .await?;
+  pub async fn get_by_id_or_create<'c>(id: i64, pool: &Pool<Db>) -> Result<Self> {
+    info!(target: "db", "get user {}", id);
+    let row = sqlx::query_file!("sql/get_user_by_id.sql", id)
+      .fetch_optional(pool)
+      .await
+      .unwrap();
+
+    let row = if let Some(row) = row { row } else { return User::insert(User::new(id), pool).await };
 
     let created_at = DateTime::from_naive(row.created_at);
     let modified_at = DateTime::from_naive(row.modified_at);
 
     let user = User {
-      id: row.id as u64,
+      chat_id: row.id,
       cached_fullname: row.cached_fullname,
       config: Config {
         is_notifies_enabled: row.is_notifies_enabled,

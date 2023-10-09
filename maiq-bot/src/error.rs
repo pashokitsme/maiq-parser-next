@@ -5,6 +5,7 @@ pub enum Error {
   Request(RequestError),
   Parser(maiq_parser_next::error::Error),
   Command(CommandError),
+  Database(maiq_db::error::Error),
 }
 
 impl From<RequestError> for Error {
@@ -16,6 +17,12 @@ impl From<RequestError> for Error {
 impl From<maiq_parser_next::error::Error> for Error {
   fn from(value: maiq_parser_next::error::Error) -> Self {
     Self::Parser(value)
+  }
+}
+
+impl From<maiq_db::error::Error> for Error {
+  fn from(value: maiq_db::error::Error) -> Self {
+    Self::Database(value)
   }
 }
 

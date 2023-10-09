@@ -7,7 +7,7 @@ select users.id,
   group_names
 from users
   join configs on users.config_ref = configs.id
-  join (
+  left join (
     select user_ref,
       array_agg(group_name) as group_names
     from target_groups
