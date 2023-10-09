@@ -23,5 +23,5 @@ runs:
 
     - name: Reset database
       shell: bash
-      if: ${{ db-url }}
+      if: ${{ inputs.db-url != '' }}
       run: cargo sqlx database reset --source maiq-db/migrations -y -D ${{ inputs.db-url }}
