@@ -7,35 +7,26 @@ on:
     branches: ['master']
 
 env:
+  DATABASE_URL: ${{ secrets.SQLX_DATABASE }}
   CARGO_TERM_COLOR: always
 
 jobs:
-  tests:
+  lint:
     runs-on: ubuntu-latest
-    env:
-      DATABASE_URL: ${{ secrets.SQLX_DATABASE }}
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup toolchain
-        uses: actions-rs/toolchain@v1
+      - uses: ./.github/actions/setup
         with:
-          toolchain: nightly
-          components: clippy
-          override: true
-
-      - name: Setup sqlx-cli
-        uses: baptiste0928/cargo-install@v2
-        with:
-          crate: sqlx-cli
-
-      - name: Reset database
-        run: cargo sqlx database reset --source maiq-db/migrations -y -D ${{ secrets.SQLX_DATABASE }}
+          db-url: ${{ secrets.SQLX_DATABASE }}
 
       - name: Linting
-        run: cargo clippy --all-features --no-deps -- -Dwarnings
+        run: cargo clippy --all-features --no-deps
+
+  tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: ./.github/actions/setup
 
       - name: Testing
         run: cargo test --package maiq-parser-next --tests

@@ -3,5 +3,18 @@
 	"rust-analyzer.check.allTargets": true,
 	"rust-analyzer.cargo.extraEnv": {
 		"DATABASE_URL": "postgres://postgres:123@localhost:5432"
-	}
+		// "DATABASE_URL": "postgres://postgres:pFdmxa2IodFPajQ@45.144.234.159:22814"
+	},
+	"sqltools.connections": [
+		{
+			"previewLimit": 50,
+			"server": "localhost",
+			"port": 5432,
+			"driver": "PostgreSQL",
+			"name": "localhost-dev",
+			"database": "postgres",
+			"username": "postgres",
+			"password": "123"
+		}
+	]
 }
