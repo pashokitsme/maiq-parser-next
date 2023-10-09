@@ -8,7 +8,7 @@ use crate::Result;
 
 impl User {
   pub async fn insert(self, pool: &Pool<Db>) -> Result<Self> {
-    info!(target:"db", "inserting new user id {}", self.chat_id);
+    info!(target: "db", "inserting new user id {}", self.chat_id);
     sqlx::query_file!("sql/insert_new_user.sql", self.chat_id, self.cached_fullname)
       .execute(pool)
       .await?;
@@ -40,5 +40,39 @@ impl User {
     };
 
     Ok(user)
+  }
+
+  pub async fn update(&self, pool: &Pool<Db>) -> Result<()> {
+    info!(target: "db", "update user {}", self.chat_id);
+    let mut tx = pool.begin().await?;
+
+    sqlx::query!(
+      r#"update users 
+      set 
+        cached_fullname = $2,
+        modified_at = now()
+      where id = $1"#,
+      self.chat_id,
+      self.cached_fullname,
+    )
+    .execute(&mut *tx)
+    .await?;
+
+    sqlx::query!(
+      r#"update configs
+       set 
+         is_notifies_enabled = $2,
+         is_broadcast_enabled = $3
+       where id in (select config_ref from users where id = $1)
+      "#,
+      self.chat_id,
+      self.config.is_notifies_enabled,
+      self.config.is_broadcast_enabled
+    )
+    .execute(&mut *tx)
+    .await?;
+
+    tx.commit().await?;
+    Ok(())
   }
 }
