@@ -17,7 +17,7 @@ fn main() {
     let md = Parser::new(&content);
     let mut buf = String::with_capacity(content.len());
     html::push_html(&mut buf, md);
-    let buf = buf.replace("<p>", "").replace("</p>", "");
+    let buf = buf.replace("<p>", "").replace("</p>", "").replace("<br />", "");
     fs::create_dir_all(out_path.parent().unwrap()).expect("unable to create dir");
     fs::write(out_path, buf).expect("unable to write file");
   }
