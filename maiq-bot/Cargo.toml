@@ -29,3 +29,7 @@ serde = { version = "1.0.188", features = ["derive"] }
 
 [dev-dependencies]
 rstest = "0.18.2"
+
+[build-dependencies]
+pulldown-cmark = { version = "0.9.3", features = ["simd"] }
+walkdir = "2.4.0"

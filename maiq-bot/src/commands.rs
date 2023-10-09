@@ -7,11 +7,11 @@ macro_rules! cmds {
     dev: { $($dev_name: ident$([args: ($($dev_arg:ident: $dev_tt:ty),*)])? => $dev_fn_name: ident),* }
   } => {
     #[derive(BotCommands, Clone, PartialEq, Debug)]
-    #[command(rename_rule = "snake_case", parse_with = "split")]
+    #[command(rename_rule = "snake_case")]
     pub enum Command {
       $(
         #[command(description = $desc)]
-        $name$(($($tt ),*))?
+        $name$(($($tt),*))?
       ),*
     }
 
@@ -23,12 +23,12 @@ macro_rules! cmds {
 
     pub trait Commands {
       fn executor(&self) -> String;
-      $(async fn $fn_name(&self, $($($arg: $tt),*)?) -> Result<()>;)*
+      $(async fn $fn_name(self, $($($arg: $tt),*)?) -> Result<()>;)*
     }
 
     pub trait DeveloperCommands {
       fn executor(&self) -> String;
-      $(async fn $dev_fn_name(&self, $($($dev_arg: $dev_tt),*)?) -> Result<()>;)*
+      $(async fn $dev_fn_name(self, $($($dev_arg: $dev_tt),*)?) -> Result<()>;)*
     }
 
     impl Command {
@@ -56,7 +56,7 @@ macro_rules! cmds {
 
 cmds! {
   pub: {
-    Start[desc: "start", args: (arg1: String, arg2: i32)] => start,
+    Start[desc: "start"] => start,
     About[desc: "about"] => about,
     Config[desc: "config"] => show_config,
     Today[desc: "today"] => today,

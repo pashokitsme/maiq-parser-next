@@ -33,6 +33,13 @@ pub type SnapshotParser = Arc<RwLock<maiq_parser_next::prelude::SnapshotParser<S
 
 pub const DEVELOPER_ID: u64 = 949248728;
 
+#[macro_export]
+macro_rules! reply {
+  ($path: literal$(, $($args:tt)+)?) => {
+      format!(include_str!(concat!(env!("OUT_DIR"), "/", $path))$(, $($args)+)?)
+  };
+}
+
 pub async fn setup_bot() -> Result<Bot> {
   let bot = Bot::from_env();
   let me = bot.get_me().await?;

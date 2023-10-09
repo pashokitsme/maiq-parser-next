@@ -3,6 +3,7 @@ use std::sync::Arc;
 
 use crate::commands::*;
 use crate::format::*;
+use crate::reply;
 use crate::Result;
 use crate::SnapshotParser;
 
@@ -45,6 +46,7 @@ impl Handler {
   fn reply<S: Into<String>>(&self, message: S) -> JsonRequest<SendMessage> {
     let send = self
       .send_message(self.message.chat.id, message)
+      .disable_web_page_preview(true)
       .parse_mode(teloxide::types::ParseMode::Html);
     if let Some(thread_id) = self.message.thread_id {
       send.message_thread_id(thread_id)
@@ -67,22 +69,22 @@ impl Commands for Handler {
     self.executor()
   }
 
-  async fn start(&self, arg1: String, arg2: i32) -> Result<()> {
-    self
-      .send_message(self.message.chat.id, format!("arg1: {}; created at: {}", arg1, self.user.created_at()))
-      .await?;
+  async fn start(self) -> Result<()> {
+    let username = self.message.from().map(|u| u.full_name()).unwrap_or_default();
+    self.reply(reply!("replies/start.md", username = username)).await?;
     Ok(())
   }
 
-  async fn about(&self) -> Result<()> {
+  async fn about(self) -> Result<()> {
+    self.reply(reply!("replies/about.md")).await?;
+    Ok(())
+  }
+
+  async fn show_config(self) -> Result<()> {
     todo!()
   }
 
-  async fn show_config(&self) -> Result<()> {
-    todo!()
-  }
-
-  async fn today(&self) -> Result<()> {
+  async fn today(self) -> Result<()> {
     if let Some(snapshot) = self.parser.read().await.latest_today() {
       self
         .reply(FormatSnapshot::select_group(snapshot, "Ир3-21").unwrap().to_string())
@@ -93,7 +95,7 @@ impl Commands for Handler {
     Ok(())
   }
 
-  async fn next(&self) -> Result<()> {
+  async fn next(self) -> Result<()> {
     if let Some(snapshot) = self.parser.read().await.latest_next() {
       self
         .reply(
@@ -115,7 +117,7 @@ impl DeveloperCommands for Handler {
     self.executor()
   }
 
-  async fn test(&self) -> Result<()> {
+  async fn test(self) -> Result<()> {
     todo!()
   }
 }
