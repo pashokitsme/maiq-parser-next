@@ -2,15 +2,15 @@
 #![feature(async_fn_in_trait)]
 
 mod commands;
-mod context;
 mod error;
 mod format;
+mod handler;
 mod parser;
 
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
-use context::Handler;
+use handler::Handler;
 use maiq_parser_next::prelude::*;
 use parser::start_parser_service;
 use teloxide::dptree::deps;
@@ -66,7 +66,6 @@ pub async fn start(bot: Bot, pool: maiq_db::Pool, parser: ParserPair<SnapshotPar
   let pool = Arc::new(pool);
 
   Dispatcher::builder(bot, distatch_tree())
-    .enable_ctrlc_handler()
     .worker_queue_size(16)
     .dependencies(deps![parser, pool])
     .build()

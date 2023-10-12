@@ -81,7 +81,8 @@ impl Commands for Handler {
   }
 
   async fn show_config(self) -> Result<()> {
-    todo!()
+    self.reply(reply!("replies/config.md")).await?;
+    Ok(())
   }
 
   async fn today(self) -> Result<()> {
