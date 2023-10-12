@@ -18,7 +18,7 @@ type Db = Postgres;
 
 pub async fn pool() -> Result<Pool> {
   info!(target: "db", "init pgpool");
-  let url = std::env::var("DATABASE_URL").unwrap();
+  let url = std::env::var("DATABASE_URL").expect("DATABASE_URL");
   let pool = PoolOptions::new().max_connections(4).connect(&url).await?;
   Ok(pool)
 }

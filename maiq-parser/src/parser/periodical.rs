@@ -56,7 +56,7 @@ impl SnapshotParserBuilder {
     let parser = SnapshotParser {
       http_client: self.reqwest_client()?,
       default_lectures: self.default_lectures.unwrap_or_else(|| {
-        warn!("default lectures not set");
+        warn!(target: "parser", "default lectures not set");
         Arc::from(DefaultLectures::default())
       }),
       on_update: tx,
@@ -144,13 +144,13 @@ impl<P: Parser + Send + Sync + 'static> SnapshotParser<P> {
     let snapshot = self.parse(url.clone()).await;
 
     if let Err(ref err) = snapshot {
-      error!("can't parse snapshot from {}: {:?}", url.as_str(), err);
+      error!(target: "parser", "can't parse snapshot from {}: {:?}", url.as_str(), err);
     }
 
     let changes = prev.distinct(snapshot.as_ref().ok(), &GROUP_NAMES);
 
     if let Err(err) = self.on_update.send(snapshot.clone().map(|s| (s, changes))).await {
-      error!("can't send parsed snapshot: {:?}", err)
+      error!(target: "parser", "can't send parsed snapshot: {:?}", err)
     }
 
     snapshot

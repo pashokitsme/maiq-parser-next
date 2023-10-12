@@ -10,9 +10,11 @@ use tokio::sync::RwLock;
 pub fn start_parser_service(bot: Bot, parser: ParserPair<SnapshotParserImpl>) -> Arc<RwLock<SnapshotParser<SnapshotParserImpl>>> {
   let mut rx = parser.1;
   let parser = Arc::new(RwLock::new(parser.0));
-  let parser_looped = LoopedSnapshotParser::with_interval(parser.clone(), Duration::from_secs(1000));
+  let parser_looped = LoopedSnapshotParser::with_interval(parser.clone(), Duration::from_secs(10));
   tokio::spawn(async move { parser_looped.start().await });
   tokio::spawn(async move {
+    rx.recv().await;
+    rx.recv().await;
     while let Some(update) = rx.recv().await {
       match update {
         Ok((snapshot, changes)) => on_update(&bot, snapshot, changes).await,
