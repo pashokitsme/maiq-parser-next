@@ -5,6 +5,8 @@ COPY . /src
 
 ARG RAILWAY_SERVICE_ID
 
+RUN echo ${RAILWAY_SERVICE_ID}
+
 RUN \
   --mount=type=cache,id=s/${RAILWAY_SERVICE_ID}-/root/.cargo,target=~/.cargo \
   ["cargo", "update"] \
