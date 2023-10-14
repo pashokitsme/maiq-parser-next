@@ -24,7 +24,8 @@ chrono = { version = "0.4.28", default-features = false, features = [
   "clock",
   "serde",
 ] }
-ureq = "2.8.0"
+ureq = { version = "2.8.0" }
+encoding_rs = "0.8.33"
 
 [dev-dependencies]
 rstest = "0.18.2"

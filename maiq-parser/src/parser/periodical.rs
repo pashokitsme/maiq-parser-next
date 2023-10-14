@@ -158,6 +158,7 @@ impl<P: Parser + Send + Sync + 'static> SnapshotParser<P> {
 
   async fn parse(&self, url: Url) -> Result<Snapshot, Error> {
     let table = self.fetch_table(url).await?.ok_or(Error::NoHtmlTable)?;
+    println!("{table:?}");
     let parser = P::new(DateTime::now())
       .with_groups(GROUP_NAMES.iter())
       .with_default_lectures(self.default_lectures.clone());
@@ -165,10 +166,14 @@ impl<P: Parser + Send + Sync + 'static> SnapshotParser<P> {
   }
 
   async fn fetch_table(&self, url: Url) -> Result<Option<Table>, ureq::Error> {
-    let html_raw = ureq::get(url.as_str())
+    let mut reader = ureq::get(url.as_str())
       .timeout(Duration::from_secs(5))
       .call()?
-      .into_string()?;
+      .into_reader();
+    let mut buf = vec![];
+    reader.read_to_end(&mut buf)?;
+    let html_raw = encoding_rs::WINDOWS_1251.decode(&buf).0;
+
     Ok(parse_last_table(&html_raw))
   }
 }
