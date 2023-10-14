@@ -87,7 +87,10 @@ impl<P: Parser + Send + Sync + 'static> LoopedSnapshotParser<P> {
     loop {
       self.interval.tick().await;
       info!(target: "parser", "tick!");
-      self.parser.write().await.check().await;
+      let (today, next) = self.parser.read().await.check().await;
+      let mut parser = self.parser.write().await;
+      parser.prev_today_snapshot = today;
+      parser.prev_next_snapshot = next;
     }
   }
 }
@@ -112,20 +115,25 @@ impl<P: Parser + Send + Sync + 'static> SnapshotParser<P> {
     self.prev_next_snapshot.as_ref()
   }
 
-  pub async fn check(&mut self) {
-    if let Some(url) = self.today_remote_url.as_ref().cloned() {
-      self.prev_today_snapshot = self
+  pub async fn check(&self) -> (Option<Snapshot>, Option<Snapshot>) {
+    let today = if let Some(url) = self.today_remote_url.as_ref().cloned() {
+      self
         .parse_and_notify(&url, self.prev_today_snapshot.as_ref())
         .await
-        .ok();
-    }
+        .ok()
+    } else {
+      None
+    };
 
-    if let Some(url) = self.next_remote_url.as_ref().cloned() {
-      self.prev_next_snapshot = self
+    let next = if let Some(url) = self.next_remote_url.as_ref().cloned() {
+      self
         .parse_and_notify(&url, self.prev_next_snapshot.as_ref())
         .await
-        .ok();
-    }
+        .ok()
+    } else {
+      None
+    };
+    (today, next)
   }
 
   pub fn looped(self, interval: Duration) -> LoopedSnapshotParser<P> {
