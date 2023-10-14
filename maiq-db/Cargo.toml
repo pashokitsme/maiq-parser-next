@@ -10,7 +10,12 @@ license = { workspace = true }
 
 [dependencies]
 tokio = { version = "1.32.0", features = ["rt-multi-thread"] }
-sqlx = { version = "0.7.2", features = ["postgres", "chrono", "runtime-tokio"] }
+sqlx = { version = "0.7.2", features = [
+  "postgres",
+  "chrono",
+  "runtime-tokio",
+  "tls-rustls",
+] }
 chrono = "0.4.31"
 getset = "0.1.2"
 log = "0.4.20"
