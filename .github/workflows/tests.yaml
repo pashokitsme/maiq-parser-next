@@ -35,6 +35,8 @@ jobs:
 
       - name: Setup
         uses: ./.github/actions/setup
+        with:
+          db-url: ${{ env.DATABASE_URL }}
 
       - name: Testing
         run: cargo test --tests
