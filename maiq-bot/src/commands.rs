@@ -57,10 +57,12 @@ macro_rules! cmds {
 cmds! {
   pub: {
     Start[desc: "start"] => start,
+    Today[desc: "today"] => today,
+    Next[desc: "next"] => next,
     About[desc: "about"] => about,
     Config[desc: "config"] => show_config,
-    Today[desc: "today"] => today,
-    Next[desc: "next"] => next
+    AddGroup[desc: "add-group", args: (name: String)] => add_group,
+    RemoveGroup[desc: "remove-group", args: (name: String)] => remove_group
   },
   dev: {
     Test => test

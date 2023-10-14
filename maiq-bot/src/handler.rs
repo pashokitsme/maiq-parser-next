@@ -2,6 +2,7 @@ use std::ops::Deref;
 use std::sync::Arc;
 
 use crate::commands::*;
+use crate::error::*;
 use crate::format::*;
 use crate::reply;
 use crate::Result;
@@ -10,6 +11,7 @@ use crate::SnapshotParser;
 use maiq_db::models::*;
 use maiq_db::Pool;
 
+use maiq_parser_next::prelude::GROUP_NAMES;
 use teloxide::payloads::SendMessage;
 use teloxide::prelude::*;
 use teloxide::requests::JsonRequest;
@@ -109,6 +111,21 @@ impl Commands for Handler {
       self.reply("Нет расписания").await?;
     }
 
+    Ok(())
+  }
+
+  async fn add_group(mut self, name: String) -> Result<()> {
+    if !GROUP_NAMES.contains(&name.as_str()) {
+      return Err(CommandError::GroupNotExists(name).into());
+    }
+
+    self.user.config_mut().add_group(name, &self.pool).await?;
+
+    Ok(())
+  }
+
+  async fn remove_group(mut self, name: String) -> Result<()> {
+    self.user.config_mut().remove_group(name, &self.pool).await?;
     Ok(())
   }
 }

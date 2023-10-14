@@ -29,6 +29,7 @@ impl From<maiq_db::error::Error> for Error {
 #[derive(Debug)]
 pub enum CommandError {
   NoUserProvided,
+  GroupNotExists(String),
 }
 
 impl From<CommandError> for Error {

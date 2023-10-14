@@ -45,27 +45,19 @@ impl User {
 
 #[derive(CopyGetters, Getters, Setters, Default, Clone, Debug)]
 pub struct Config {
-  #[getset(get_copy = "pub", set = "pub")]
+  pub(crate) chat_id: i64,
+
+  #[getset(get_copy = "pub")]
   pub(crate) is_notifies_enabled: bool,
 
-  #[getset(get_copy = "pub", set = "pub")]
+  #[getset(get_copy = "pub")]
   pub(crate) is_broadcast_enabled: bool,
 
   pub(crate) target_groups: Vec<String>,
 }
 
 impl Config {
-  pub fn add_group<S: AsRef<str>>(&mut self, name: S) {
-    if !self.target_groups.iter().any(|n| n == name.as_ref()) {
-      self.target_groups.push(name.as_ref().into());
-    }
-  }
-
-  pub fn remove_group<S: AsRef<str>>(&mut self, name: S) {
-    self.target_groups.retain(|n| n != name.as_ref());
-  }
-
-  pub fn target_groups(&self) -> Iter<String> {
+  pub fn groups(&self) -> Iter<String> {
     self.target_groups.iter()
   }
 }
