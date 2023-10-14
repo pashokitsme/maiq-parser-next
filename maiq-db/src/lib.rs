@@ -17,7 +17,7 @@ type DbConnection = sqlx::sqlite::SqliteConnection;
 
 pub async fn pool() -> Result<Pool> {
   info!(target: "db", "init sqlite database");
-  let url = std::env::var("DATABASE_URL").expect("DATABASE_URL");
+  let url = std::env::var("SQLITE_PATH").expect("SQLITE_PATH");
   validate(&url).await?;
   let pool = PoolOptions::new().max_connections(4).connect(&url).await?;
   Ok(pool)
