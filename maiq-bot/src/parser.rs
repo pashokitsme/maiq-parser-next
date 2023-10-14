@@ -10,7 +10,16 @@ use tokio::sync::RwLock;
 pub fn start_parser_service(bot: Bot, parser: ParserPair<SnapshotParserImpl>) -> Arc<RwLock<SnapshotParser<SnapshotParserImpl>>> {
   let mut rx = parser.1;
   let parser = Arc::new(RwLock::new(parser.0));
-  let parser_looped = LoopedSnapshotParser::with_interval(parser.clone(), Duration::from_secs(10));
+
+  let delay_secs = std::env::var("DELAY")
+    .ok()
+    .and_then(|v| v.parse().ok())
+    .unwrap_or_else(|| {
+      warn!(target: "parser", "env-var DELAY not set; using 300s");
+      300
+    });
+
+  let parser_looped = LoopedSnapshotParser::with_interval(parser.clone(), Duration::from_secs(delay_secs));
   tokio::spawn(async move { parser_looped.start().await });
   tokio::spawn(async move {
     rx.recv().await;

@@ -11,10 +11,7 @@ use owo_colors::OwoColorize;
 #[tokio::main]
 async fn main() {
   pretty_env_logger::init();
-  // let pool = pool().await.unwrap();
-  // let user = User::get_by_id_or_create(949248728, &pool).await;
-  // dbg!(user);
-  let (mut parser, mut rx) = SnapshotParserBuilder::new()
+  let (parser, mut rx) = SnapshotParserBuilder::new()
     .with_next_url("https://rsp.chemk.org/4korp/tomorrow.htm")
     .unwrap()
     .build::<SnapshotParser4>()
