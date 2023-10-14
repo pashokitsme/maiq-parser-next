@@ -3,15 +3,15 @@ FROM rustlang/rust:nightly-slim as builder
 WORKDIR /src
 COPY . /src
 
-ARG RAILWAY_ENVIRONMENT_ID=cache
+ARG RAILWAY_SERVICE_ID
 
 RUN \
-  --mount=type=cache,id=s/${RAILWAY_ENVIRONMENT_ID}/.cargo,target=~/.cargo \
+  --mount=type=cache,id=${RAILWAY_SERVICE_ID}/.cargo,target=~/.cargo \
   ["cargo", "update"] \
   ["cargo", "fetch"]
 
 RUN \
-  --mount=type=cache,id=s/${RAILWAY_ENVIRONMENT_ID}/.cargo,target=~/.cargo \
+  --mount=type=cache,id=${RAILWAY_SERVICE_ID}/.cargo,target=~/.cargo \
   ["cargo", "build", "--release"]
 
 FROM debian:bullseye-slim
