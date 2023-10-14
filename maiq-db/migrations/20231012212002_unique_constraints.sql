@@ -1,4 +1,2 @@
-alter table groups
-add constraint unique_name unique(group_name);
-alter table target_groups
-add constraint unique_pair unique(user_ref, group_name_ref);
+create unique index ux_groups_group_name on groups(group_name);
+create unique index ux_target_groups_pair on target_groups(user_ref, group_name_ref);

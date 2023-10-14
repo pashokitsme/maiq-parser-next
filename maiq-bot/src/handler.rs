@@ -128,6 +128,13 @@ impl Commands for Handler {
     self.user.config_mut().remove_group(name, &self.pool).await?;
     Ok(())
   }
+
+  async fn show_my_groups(self) -> Result<()> {
+    self
+      .reply(format!("Твои группы: {:?}", self.user.config().groups().as_ref()))
+      .await?;
+    Ok(())
+  }
 }
 
 impl DeveloperCommands for Handler {

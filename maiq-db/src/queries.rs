@@ -16,7 +16,6 @@ impl User {
   }
 
   pub async fn get_by_id_or_create<'c>(id: i64, pool: &Pool<Db>) -> Result<Self> {
-    info!(target: "db", "get user {}", id);
     let row = sqlx::query_file!("sql/get_user_by_id.sql", id)
       .fetch_optional(pool)
       .await
@@ -33,7 +32,12 @@ impl User {
       config: Config {
         is_notifies_enabled: row.is_notifies_enabled,
         is_broadcast_enabled: row.is_broadcast_enabled,
-        target_groups: row.group_names.unwrap_or_default(),
+        target_groups: row
+          .group_names
+          .unwrap_or_default()
+          .split(',')
+          .map(Into::into)
+          .collect::<Vec<String>>(),
         chat_id: row.id,
       },
       created_at,
@@ -51,7 +55,7 @@ impl User {
       r#"update users 
       set 
         cached_fullname = $2,
-        modified_at = now()
+        modified_at = datetime()
       where id = $1"#,
       self.chat_id,
       self.cached_fullname,
@@ -84,12 +88,14 @@ impl Config {
     };
 
     let mut tx = pool.begin().await?;
+    let name = name.as_ref();
     sqlx::query!(
       r#"
         insert into groups(group_name)
         select $1::varchar where not exists (select 1 from groups where groups.group_name = $1 limit 1)
       "#,
-      name.as_ref()
+      name,
+      name
     )
     .execute(&mut *tx)
     .await?;
@@ -100,30 +106,31 @@ impl Config {
         values ($1, (select id from groups where group_name = $2))
       "#,
       self.chat_id,
-      name.as_ref()
+      name
     )
     .execute(&mut *tx)
     .await?;
 
     tx.commit().await?;
 
-    self.target_groups.push(name.as_ref().into());
+    self.target_groups.push(name.into());
     Ok(())
   }
 
   pub async fn remove_group<S: AsRef<str>>(&mut self, name: S, pool: &Pool<Db>) -> Result<()> {
+    let name = name.as_ref();
     sqlx::query!(
       r#"
         delete from target_groups
         where user_ref = $1 and group_name_ref = (select id from groups where group_name = $2)
       "#,
       self.chat_id,
-      name.as_ref()
+      name
     )
     .execute(pool)
     .await?;
 
-    self.target_groups.retain(|n| n != name.as_ref());
+    self.target_groups.retain(|n| n != name);
     Ok(())
   }
 }
