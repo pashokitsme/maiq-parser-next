@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        delete from target_groups\n        where user_ref = $1 and group_name_ref = (select id from groups where group_name = $2)\n      ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "d22a32a6877912704f43ab52713e5769a16cdc004063de651271749ba6e66dd1"
+}

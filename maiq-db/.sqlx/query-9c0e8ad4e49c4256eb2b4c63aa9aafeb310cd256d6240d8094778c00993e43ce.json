@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "update users \n      set \n        cached_fullname = $2,\n        modified_at = datetime()\n      where id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "9c0e8ad4e49c4256eb2b4c63aa9aafeb310cd256d6240d8094778c00993e43ce"
+}

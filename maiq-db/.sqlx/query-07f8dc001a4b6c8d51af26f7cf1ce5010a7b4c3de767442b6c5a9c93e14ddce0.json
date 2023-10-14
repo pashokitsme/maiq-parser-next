@@ -1,0 +1,56 @@
+{
+  "db_name": "SQLite",
+  "query": "select \n  users.id,\n  users.cached_fullname,\n  users.modified_at,\n  users.created_at,\n  configs.is_broadcast_enabled,\n  configs.is_notifies_enabled,\n  group_names\nfrom users\n  join configs on users.config_ref = configs.id\n  left join (\n    select user_ref, group_concat(group_name) as group_names\n    from target_groups\n      join groups on target_groups.group_name_ref = groups.id\n    group by user_ref\n  ) on user_ref = users.id\nwhere users.id = $1",
+  "describe": {
+    "columns": [
+      {
+        "name": "id",
+        "ordinal": 0,
+        "type_info": "Int64"
+      },
+      {
+        "name": "cached_fullname",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "modified_at",
+        "ordinal": 2,
+        "type_info": "Datetime"
+      },
+      {
+        "name": "created_at",
+        "ordinal": 3,
+        "type_info": "Datetime"
+      },
+      {
+        "name": "is_broadcast_enabled",
+        "ordinal": 4,
+        "type_info": "Bool"
+      },
+      {
+        "name": "is_notifies_enabled",
+        "ordinal": 5,
+        "type_info": "Bool"
+      },
+      {
+        "name": "group_names",
+        "ordinal": 6,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "07f8dc001a4b6c8d51af26f7cf1ce5010a7b4c3de767442b6c5a9c93e14ddce0"
+}

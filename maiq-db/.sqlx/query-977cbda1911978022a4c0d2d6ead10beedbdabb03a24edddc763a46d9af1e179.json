@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        insert into target_groups(user_ref, group_name_ref)\n        values ($1, (select id from groups where group_name = $2))\n      ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "977cbda1911978022a4c0d2d6ead10beedbdabb03a24edddc763a46d9af1e179"
+}

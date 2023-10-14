@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "update configs\n       set \n         is_notifies_enabled = $2,\n         is_broadcast_enabled = $3\n       where id in (select config_ref from users where id = $1)\n      ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "19adeb613c577f335ff4e7b05f12a6d196f048af331e6608728131c0a319cbe4"
+}

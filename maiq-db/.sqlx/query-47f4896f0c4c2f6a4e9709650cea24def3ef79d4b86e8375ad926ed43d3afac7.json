@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "insert into configs default values;\n\ninsert into users (id, cached_fullname, config_ref)\nvalues ($1, $2, last_insert_rowid());",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "47f4896f0c4c2f6a4e9709650cea24def3ef79d4b86e8375ad926ed43d3afac7"
+}
