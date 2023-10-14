@@ -10,7 +10,7 @@ RUN \
 
 RUN \
   --mount=type=cache,id=s/089e3255-5585-4126-bced-b42eb9ceb953-/root/cargo,target=~/.cargo \
-  ["cargo", "build", "--release"]
+  ["cargo", "build", "--release", "--package", "maiq-bot"]
 
 FROM debian:bullseye-slim
 
