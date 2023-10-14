@@ -36,5 +36,6 @@ pub(crate) fn init_logger(is_test: bool) {
       writeln!(f, "{}", record.args())
     })
     .parse_filters(std::env::var("RUST_LOG").unwrap_or_default().as_str())
+    .parse_write_style(std::env::var("RUST_LOG_STYLE").unwrap_or_default().as_str())
     .init();
 }
