@@ -3,7 +3,7 @@ FROM rustlang/rust:nightly-slim as builder
 WORKDIR /src
 COPY . /src
 
-ARG RAILWAY_SERVICE_ID
+ARG RAILWAY_SERVICE_ID=cache
 
 RUN \
   --mount=type=cache,id=${RAILWAY_SERVICE_ID}/.cargo,target=~/.cargo \
