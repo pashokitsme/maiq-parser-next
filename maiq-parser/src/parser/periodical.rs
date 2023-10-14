@@ -17,8 +17,6 @@ use crate::parser::table::*;
 use crate::snapshot::*;
 use crate::utils::time::*;
 
-use reqwest::Client;
-
 use url::Url;
 
 pub type ParserPair<P> = (SnapshotParser<P>, Receiver<Result<(Snapshot, Changes), Error>>);
@@ -54,7 +52,6 @@ impl SnapshotParserBuilder {
   pub fn build<P: Parser + Send + Sync + 'static>(self) -> Result<ParserPair<P>, Error> {
     let (tx, rx) = mpsc::channel(8);
     let parser = SnapshotParser {
-      http_client: self.reqwest_client()?,
       default_lectures: self.default_lectures.unwrap_or_else(|| {
         warn!(target: "parser", "default lectures not set");
         Arc::from(DefaultLectures::default())
@@ -68,10 +65,6 @@ impl SnapshotParserBuilder {
     };
 
     Ok((parser, rx))
-  }
-
-  fn reqwest_client(&self) -> reqwest::Result<Client> {
-    Client::builder().timeout(Duration::from_secs(10)).build()
   }
 }
 
@@ -103,7 +96,6 @@ impl<P: Parser + Send + Sync + 'static> LoopedSnapshotParser<P> {
 pub struct SnapshotParser<P: Parser + Send + Sync> {
   default_lectures: Arc<DefaultLectures>,
   on_update: Sender<UpdateCallback>,
-  http_client: Client,
   today_remote_url: Option<Url>,
   next_remote_url: Option<Url>,
   prev_today_snapshot: Option<Snapshot>,
@@ -164,14 +156,11 @@ impl<P: Parser + Send + Sync + 'static> SnapshotParser<P> {
     Ok(parser.parse(table))
   }
 
-  async fn fetch_table(&self, url: Url) -> reqwest::Result<Option<Table>> {
-    let html_raw = self
-      .http_client
-      .get(url)
-      .send()
-      .await?
-      .text_with_charset("windows-1251")
-      .await?;
+  async fn fetch_table(&self, url: Url) -> Result<Option<Table>, ureq::Error> {
+    let html_raw = ureq::get(url.as_str())
+      .timeout(Duration::from_secs(5))
+      .call()?
+      .into_string()?;
     Ok(parse_last_table(&html_raw))
   }
 }

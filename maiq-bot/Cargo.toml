@@ -14,6 +14,7 @@ teloxide = { version = "0.12.2", features = [
   "teloxide-macros",
   "bincode",
   "bincode-serializer",
+  "rustls",
 ] }
 maiq-db = { path = "../maiq-db" }
 maiq-parser-next = { path = "../maiq-parser" }

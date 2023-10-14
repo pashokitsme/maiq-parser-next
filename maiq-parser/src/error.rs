@@ -7,8 +7,8 @@ pub enum Error {
   NoHtmlTable,
 }
 
-impl From<reqwest::Error> for Error {
-  fn from(value: reqwest::Error) -> Self {
-    Error::Network(value.without_url().to_string())
+impl From<ureq::Error> for Error {
+  fn from(value: ureq::Error) -> Self {
+    Error::Network(value.to_string())
   }
 }
