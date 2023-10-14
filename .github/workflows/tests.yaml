@@ -7,7 +7,6 @@ on:
     branches: ['master']
 
 env:
-  DATABASE_URL: sqlite://sqlite.db
   CARGO_TERM_COLOR: always
 
 jobs:
@@ -20,8 +19,6 @@ jobs:
 
       - name: Setup
         uses: ./.github/actions/setup
-        with:
-          db-url: ${{ env.DATABASE_URL }}
 
       - name: Linting
         run: cargo clippy --all-features --no-deps
@@ -35,8 +32,6 @@ jobs:
 
       - name: Setup
         uses: ./.github/actions/setup
-        with:
-          db-url: ${{ env.DATABASE_URL }}
 
       - name: Testing
         run: cargo test --tests

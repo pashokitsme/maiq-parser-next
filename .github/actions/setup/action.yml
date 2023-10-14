@@ -1,11 +1,6 @@
 name: Setup
 description: ''
 
-inputs:
-  db-url:
-    description: ''
-    required: false
-
 runs:
   using: composite
   steps:
@@ -20,8 +15,3 @@ runs:
       uses: baptiste0928/cargo-install@v2
       with:
         crate: sqlx-cli
-
-    - name: Reset database
-      shell: bash
-      if: ${{ inputs.db-url != '' }}
-      run: cargo sqlx database reset --source maiq-db/migrations -y -D ${{ inputs.db-url }}
