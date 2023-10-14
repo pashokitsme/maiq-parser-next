@@ -10,6 +10,10 @@ impl<'a> FormatSnapshot<'a> {
   pub fn select_group(snapshot: &'a Snapshot, name: &str) -> Option<Self> {
     snapshot.group(name).map(|group| Self(snapshot, FormatGroup(group)))
   }
+
+  pub fn group_name(&self) -> &str {
+    self.1 .0.name()
+  }
 }
 
 impl<'a> Display for FormatSnapshot<'a> {

@@ -11,7 +11,8 @@ use crate::SnapshotParser;
 use maiq_db::models::*;
 use maiq_db::Pool;
 
-use maiq_parser_next::prelude::GROUP_NAMES;
+use maiq_parser_next::prelude::*;
+
 use teloxide::payloads::SendMessage;
 use teloxide::prelude::*;
 use teloxide::requests::JsonRequest;
@@ -66,6 +67,36 @@ impl Deref for Handler {
   }
 }
 
+impl Handler {
+  async fn reply_snapshot(&self, snapshot: &Snapshot) -> Result<()> {
+    match self.user.config().groups().len() {
+      0 => {
+        self.reply(reply!("replies/err/group_not_set.md")).await?;
+      }
+      1 => {
+        let group_name = self.user.config().groups().next().unwrap();
+        let format = FormatSnapshot::select_group(snapshot, group_name)
+          .map(|s| s.to_string())
+          .unwrap_or_else(|| format!("Нет расписания для группы: {}", group_name));
+        self.reply(format).await?;
+      }
+      _ => {
+        for format in self
+          .user
+          .config()
+          .groups()
+          .filter_map(|group| FormatSnapshot::select_group(snapshot, group))
+        {
+          self
+            .reply(reply!("replies/many_groups.md", group_name = format.group_name(), formatted = format.to_string()))
+            .await?;
+        }
+      }
+    }
+    Ok(())
+  }
+}
+
 impl Commands for Handler {
   fn executor(&self) -> String {
     self.executor()
@@ -89,9 +120,7 @@ impl Commands for Handler {
 
   async fn today(self) -> Result<()> {
     if let Some(snapshot) = self.parser.read().await.latest_today() {
-      self
-        .reply(FormatSnapshot::select_group(snapshot, "Ир3-21").unwrap().to_string())
-        .await?;
+      self.reply_snapshot(snapshot).await?;
     } else {
       self.reply("Нет расписания").await?;
     }
@@ -100,13 +129,7 @@ impl Commands for Handler {
 
   async fn next(self) -> Result<()> {
     if let Some(snapshot) = self.parser.read().await.latest_next() {
-      self
-        .reply(
-          FormatSnapshot::select_group(snapshot, "Ир3-21")
-            .map(|s| s.to_string())
-            .unwrap_or("Нет расписания".into()),
-        )
-        .await?;
+      self.reply_snapshot(snapshot).await?;
     } else {
       self.reply("Нет расписания").await?;
     }
