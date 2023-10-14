@@ -37,4 +37,4 @@ jobs:
         uses: ./.github/actions/setup
 
       - name: Testing
-        run: cargo test --package maiq-parser-next --tests
+        run: cargo test --tests
