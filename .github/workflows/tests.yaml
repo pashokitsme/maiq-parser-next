@@ -34,4 +34,4 @@ jobs:
         uses: ./.github/actions/setup
 
       - name: Testing
-        run: cargo test --tests
+        run: cargo test --workspace --no-fail-fast
