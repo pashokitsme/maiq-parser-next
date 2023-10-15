@@ -1,0 +1,26 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        select users.id as id, group_concat(group_name) as groups from users \n        join configs on configs.id = users.config_ref\n        join target_groups on target_groups.user_ref = users.id\n        join groups on groups.id = target_groups.group_name_ref\n        where configs.is_notifies_enabled = 1\n        group by users.id;\n      ",
+  "describe": {
+    "columns": [
+      {
+        "name": "id",
+        "ordinal": 0,
+        "type_info": "Int64"
+      },
+      {
+        "name": "groups",
+        "ordinal": 1,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "07d0dba08b8e8ef7e1f25a356cf3cc4795f0aba455c8cc0b396f89c02979f7df"
+}

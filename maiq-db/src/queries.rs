@@ -6,6 +6,8 @@ use crate::utils::*;
 use crate::Db;
 use crate::Result;
 
+pub type UserEntry = (i64, Vec<String>);
+
 impl User {
   pub async fn insert(self, pool: &Pool<Db>) -> Result<Self> {
     info!(target: "db", "inserting new user id {}", self.chat_id);
@@ -45,6 +47,26 @@ impl User {
     };
 
     Ok(user)
+  }
+
+  pub async fn all(pool: &Pool<Db>) -> Result<Vec<UserEntry>> {
+    let entries = sqlx::query!(
+      r#"
+        select users.id as id, group_concat(group_name) as groups from users 
+        join configs on configs.id = users.config_ref
+        join target_groups on target_groups.user_ref = users.id
+        join groups on groups.id = target_groups.group_name_ref
+        where configs.is_notifies_enabled = 1
+        group by users.id;
+      "#
+    )
+    .fetch_all(pool)
+    .await?
+    .into_iter()
+    .map(|row| (row.id, row.groups.split(',').map(Into::into).collect()))
+    .collect();
+
+    Ok(entries)
   }
 
   pub async fn update(self, pool: &Pool<Db>) -> Result<Self> {

@@ -62,8 +62,8 @@ pub fn setup_parser() -> Result<ParserPair<SnapshotParserImpl>> {
 }
 
 pub async fn start(bot: Bot, pool: maiq_db::Pool, parser: ParserPair<SnapshotParserImpl>) {
-  let parser = start_parser_service(bot.clone(), parser);
   let pool = Arc::new(pool);
+  let parser = start_parser_service(bot.clone(), parser, pool.clone());
 
   Dispatcher::builder(bot, distatch_tree())
     .worker_queue_size(16)
