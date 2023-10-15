@@ -36,7 +36,7 @@ pub const DEVELOPER_ID: u64 = 949248728;
 #[macro_export]
 macro_rules! reply {
   ($path: literal$(, $($args:tt)+)?) => {
-      format!(include_str!(concat!(env!("OUT_DIR"), "/", $path))$(, $($args)+)?)
+      format!(include_str!(concat!(env!("OUT_DIR"), "/replies/", $path))$(, $($args)+)?)
   };
 }
 

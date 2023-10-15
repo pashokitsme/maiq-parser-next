@@ -71,13 +71,13 @@ impl Handler {
   async fn reply_snapshot(&self, snapshot: &Snapshot) -> Result<()> {
     match self.user.config().groups().len() {
       0 => {
-        self.reply(reply!("replies/err/group_not_set.md")).await?;
+        self.reply(reply!("err/group_not_set.md")).await?;
       }
       1 => {
         let group_name = self.user.config().groups().next().unwrap();
         let format = FormatSnapshot::select_group(snapshot, group_name)
           .map(|s| s.to_string())
-          .unwrap_or_else(|| format!("Нет расписания для группы: {}", group_name));
+          .unwrap_or_else(|| reply!("err/no_timetable_exact.md", group_name = group_name));
         self.reply(format).await?;
       }
       _ => {
@@ -88,7 +88,7 @@ impl Handler {
           .filter_map(|group| FormatSnapshot::select_group(snapshot, group))
         {
           self
-            .reply(reply!("replies/many_groups.md", group_name = format.group_name(), formatted = format.to_string()))
+            .reply(reply!("snapshot/many_groups.md", group_name = format.group_name(), formatted = format.to_string()))
             .await?;
         }
       }
@@ -104,17 +104,17 @@ impl Commands for Handler {
 
   async fn start(self) -> Result<()> {
     let username = self.message.from().map(|u| u.full_name()).unwrap_or_default();
-    self.reply(reply!("replies/start.md", username = username)).await?;
+    self.reply(reply!("start.md", username = username)).await?;
     Ok(())
   }
 
   async fn about(self) -> Result<()> {
-    self.reply(reply!("replies/about.md")).await?;
+    self.reply(reply!("about.md")).await?;
     Ok(())
   }
 
   async fn show_config(self) -> Result<()> {
-    self.reply(reply!("replies/config.md")).await?;
+    self.reply(reply!("config.md")).await?;
     Ok(())
   }
 
@@ -122,7 +122,7 @@ impl Commands for Handler {
     if let Some(snapshot) = self.parser.read().await.latest_today() {
       self.reply_snapshot(snapshot).await?;
     } else {
-      self.reply("Нет расписания").await?;
+      self.reply(reply!("err/no_timetable.md")).await?;
     }
     Ok(())
   }
@@ -131,7 +131,7 @@ impl Commands for Handler {
     if let Some(snapshot) = self.parser.read().await.latest_next() {
       self.reply_snapshot(snapshot).await?;
     } else {
-      self.reply("Нет расписания").await?;
+      self.reply(reply!("err/no_timetable.md")).await?;
     }
 
     Ok(())
