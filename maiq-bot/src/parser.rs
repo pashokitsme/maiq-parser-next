@@ -78,7 +78,7 @@ async fn on_update(bot: Bot, pool: Arc<Pool>, snapshot: Snapshot, changes: Vec<S
     }
   }
 
-  info!(target: "rx-parser", "sent {} ok / {} tried / {} total", ok, total, tasks.len());
+  info!(target: "rx-parser", "sent {} ok / {} total", ok, total);
   Ok(())
 }
 
