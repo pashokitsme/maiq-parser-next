@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        insert into groups(group_name)\n        select $1 where not exists (select 1 from groups where groups.group_name = $1 limit 1)\n      ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "9a824efc10b4353149cda5095ed6cdfb16d7571f6baf31bfad5b86f042a577aa"
+}
