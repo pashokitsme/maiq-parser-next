@@ -17,7 +17,7 @@ async fn main() {
     .build::<SnapshotParser4>()
     .unwrap();
 
-  parser.check().await;
+  parser.check(true).await;
 
   let (snapshot, _) = rx.recv().await.unwrap().unwrap();
 
