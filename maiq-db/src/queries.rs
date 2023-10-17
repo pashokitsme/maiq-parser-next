@@ -114,9 +114,8 @@ impl Config {
     sqlx::query!(
       r#"
         insert into groups(group_name)
-        select $1::varchar where not exists (select 1 from groups where groups.group_name = $1 limit 1)
+        select $1 where not exists (select 1 from groups where groups.group_name = $1 limit 1)
       "#,
-      name,
       name
     )
     .execute(&mut *tx)

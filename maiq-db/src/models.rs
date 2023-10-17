@@ -35,7 +35,9 @@ impl Default for User {
 
 impl User {
   pub fn new(chat_id: i64) -> Self {
-    Self { chat_id, ..Default::default() }
+    let mut user = Self { chat_id, ..Default::default() };
+    user.config.chat_id = chat_id;
+    user
   }
 
   pub fn cached_fullname(&self) -> Option<&str> {

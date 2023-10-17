@@ -1,7 +1,6 @@
 use rstest::*;
 
 use maiq_db::models::*;
-use maiq_db::queries::*;
 use maiq_db::Result;
 use maiq_db::*;
 
