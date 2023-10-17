@@ -172,7 +172,7 @@ impl<P: Parser + Send + Sync + 'static> SnapshotParser<P> {
 
   async fn fetch_table(&self, url: Url) -> Result<Option<Table>, ureq::Error> {
     let mut reader = ureq::get(url.as_str())
-      .timeout(Duration::from_secs(5))
+      .timeout(Duration::from_secs(15))
       .call()?
       .into_reader();
     let mut buf = vec![];
