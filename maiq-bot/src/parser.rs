@@ -35,8 +35,6 @@ pub fn start_parser_service(
   let parser_looped = LoopedSnapshotParser::with_interval(parser.clone(), Duration::from_secs(delay_secs));
   tokio::spawn(async move { parser_looped.start().await });
   tokio::spawn(async move {
-    // rx.recv().await;
-    // rx.recv().await;
     while let Some(update) = rx.recv().await {
       let res = match update {
         Ok((snapshot, changes)) if !changes.is_empty() => on_update(bot.clone(), pool.clone(), snapshot, changes).await,

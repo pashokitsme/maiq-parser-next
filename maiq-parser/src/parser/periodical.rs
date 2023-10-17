@@ -84,13 +84,15 @@ impl<P: Parser + Send + Sync + 'static> LoopedSnapshotParser<P> {
   }
 
   pub async fn start(mut self) {
+    let mut ready = false;
     loop {
       self.interval.tick().await;
       debug!(target: "parser", "tick!");
-      let (today, next) = self.parser.read().await.check().await;
+      let (today, next) = self.parser.read().await.check(ready).await;
       let mut parser = self.parser.write().await;
       parser.prev_today_snapshot = today;
       parser.prev_next_snapshot = next;
+      ready = true;
     }
   }
 }
@@ -115,10 +117,10 @@ impl<P: Parser + Send + Sync + 'static> SnapshotParser<P> {
     self.prev_next_snapshot.as_ref()
   }
 
-  pub async fn check(&self) -> (Option<Snapshot>, Option<Snapshot>) {
+  pub async fn check(&self, ready: bool) -> (Option<Snapshot>, Option<Snapshot>) {
     let today = if let Some(url) = self.today_remote_url.as_ref().cloned() {
       self
-        .parse_and_notify(&url, self.prev_today_snapshot.as_ref())
+        .parse_and_notify(&url, self.prev_today_snapshot.as_ref(), ready)
         .await
         .ok()
     } else {
@@ -127,7 +129,7 @@ impl<P: Parser + Send + Sync + 'static> SnapshotParser<P> {
 
     let next = if let Some(url) = self.next_remote_url.as_ref().cloned() {
       self
-        .parse_and_notify(&url, self.prev_next_snapshot.as_ref())
+        .parse_and_notify(&url, self.prev_next_snapshot.as_ref(), ready)
         .await
         .ok()
     } else {
@@ -140,8 +142,12 @@ impl<P: Parser + Send + Sync + 'static> SnapshotParser<P> {
     LoopedSnapshotParser { interval: tokio::time::interval(interval), parser: Arc::new(RwLock::new(self)) }
   }
 
-  async fn parse_and_notify(&self, url: &Url, prev: Option<&Snapshot>) -> Result<Snapshot, Error> {
+  async fn parse_and_notify(&self, url: &Url, prev: Option<&Snapshot>, ready: bool) -> Result<Snapshot, Error> {
     let snapshot = self.parse(url.clone()).await;
+
+    if !ready {
+      return snapshot;
+    }
 
     if let Err(ref err) = snapshot {
       error!(target: "parser", "can't parse snapshot from {}: {:?}", url.as_str(), err);
