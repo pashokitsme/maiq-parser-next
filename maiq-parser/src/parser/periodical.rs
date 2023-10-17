@@ -86,7 +86,7 @@ impl<P: Parser + Send + Sync + 'static> LoopedSnapshotParser<P> {
   pub async fn start(mut self) {
     loop {
       self.interval.tick().await;
-      info!(target: "parser", "tick!");
+      debug!(target: "parser", "tick!");
       let (today, next) = self.parser.read().await.check().await;
       let mut parser = self.parser.write().await;
       parser.prev_today_snapshot = today;
