@@ -14,8 +14,8 @@ pub fn build_info() -> &'static str {
     let git = git.as_ref().unwrap();
 
     let offset = FixedOffset::east_opt(3 * 3600).unwrap();
-    let took = info.timestamp.with_timezone(&offset).timestamp() - git.commit_timestamp.with_timezone(&offset).timestamp();
-    let took = Duration::from_secs(took as u64);
+    let took = info.timestamp - git.commit_timestamp;
+    let took = Duration::from_secs(took.num_seconds() as u64);
     let took = pretty_duration::pretty_duration(&took, None);
 
     let ver = crate::reply!(
@@ -29,7 +29,7 @@ pub fn build_info() -> &'static str {
       o = info.optimization_level,
       branch = git.branch.as_ref().unwrap(),
       commit = git.commit_short_id,
-      deployed_time = info.timestamp.format("%d.%m.%Y %H:%m:%S"),
+      deployed_time = info.timestamp.with_timezone(&offset).format("%d.%m.%Y %H:%m:%S"),
       deploy_time_took = took
     );
     ver
