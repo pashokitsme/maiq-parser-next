@@ -39,7 +39,7 @@ pub fn start_parser_service(
   tokio::spawn(async move {
     while let Some(update) = rx.recv().await {
       if !TIME_BOUNDS.contains(&DateTime::now().time().hour()) {
-        return;
+        continue;
       }
 
       let res = match update {
