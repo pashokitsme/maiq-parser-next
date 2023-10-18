@@ -16,6 +16,8 @@ use maiq_db::Pool;
 use maiq_parser_next::parser::LoopedSnapshotParser;
 use maiq_parser_next::prelude::*;
 
+const TIME_BOUNDS: std::ops::Range<u32> = 8..18;
+
 pub fn start_parser_service(
   bot: Bot,
   parser: ParserPair<SnapshotParserImpl>,
@@ -36,6 +38,10 @@ pub fn start_parser_service(
   tokio::spawn(async move { parser_looped.start().await });
   tokio::spawn(async move {
     while let Some(update) = rx.recv().await {
+      if !TIME_BOUNDS.contains(&DateTime::now().time().hour()) {
+        return;
+      }
+
       let res = match update {
         Ok((snapshot, changes)) if !changes.is_empty() => on_update(bot.clone(), pool.clone(), snapshot, changes).await,
         Err(err) => on_error(&bot, err).await,
@@ -58,6 +64,10 @@ async fn on_update(bot: Bot, pool: Arc<Pool>, snapshot: Snapshot, changes: Vec<S
   let mut tasks = JoinSet::new();
   users
     .into_iter()
+    .map(|(id, mut groups)| {
+      groups.retain(|g| changes.contains(g));
+      (id, groups)
+    })
     .filter(|(_, groups)| !groups.is_empty())
     .map(|(id, groups)| send_snapshot(bot.clone(), snapshot.clone(), id, groups))
     .for_each(|task| {
