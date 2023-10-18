@@ -158,6 +158,11 @@ impl Commands for Handler {
       .await?;
     Ok(())
   }
+
+  async fn version(self) -> Result<()> {
+    self.reply(crate::build_info::build_info()).await?;
+    Ok(())
+  }
 }
 
 impl DeveloperCommands for Handler {

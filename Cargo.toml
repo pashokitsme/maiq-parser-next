@@ -4,16 +4,16 @@ members = ["maiq-bot", "maiq-cli", "maiq-parser", "maiq-db"]
 
 [workspace.package]
 license = "MPL-2.0"
-repository = "https://github.com/pashokitsme/maiq-bot"
+repository = "https://github.com/pashokitsme/maiq-parser-next"
 edition = "2021"
 authors = ["pashokitsme <t.me/pashokitsme>"]
 
 [profile.release]
-panic = "abort"
 codegen-units = 1
+opt-level = 3
 lto = true
 incremental = false
-opt-level = "s"
+panic = "abort"
 
 [profile.dev]
 panic = "abort"

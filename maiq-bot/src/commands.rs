@@ -63,7 +63,8 @@ cmds! {
     Config[desc: "config"] => show_config,
     MyGroups[desc: "my-groups"] => show_my_groups,
     AddGroup[desc: "add-group", args: (name: String)] => add_group,
-    RemoveGroup[desc: "remove-group", args: (name: String)] => remove_group
+    RemoveGroup[desc: "remove-group", args: (name: String)] => remove_group,
+    Version[desc: "version"] => version
   },
   dev: {
     Test => test

@@ -1,3 +1,4 @@
+mod build_info;
 mod commands;
 mod error;
 mod format;
@@ -33,8 +34,11 @@ pub const DEVELOPER_ID: u64 = 949248728;
 #[macro_export]
 macro_rules! reply {
   ($path: literal$(, $($args:tt)+)?) => {
-      format!(include_str!(concat!(env!("OUT_DIR"), "/replies/", $path))$(, $($args)+)?)
+      format!($crate::reply!(const $path)$(, $($args)+)?)
   };
+  (const $path: literal) => {
+    include_str!(concat!(env!("OUT_DIR"), "/replies/", $path))
+  }
 }
 
 pub async fn setup_bot() -> Result<Bot> {
