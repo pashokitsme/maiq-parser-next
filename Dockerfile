@@ -1,7 +1,7 @@
 FROM rustlang/rust:nightly-slim as builder
 
 WORKDIR /src
-COPY . /src
+COPY . .
 
 RUN \
   --mount=type=cache,id=s/089e3255-5585-4126-bced-b42eb9ceb953-/root/cargo,target=~/.cargo \
@@ -21,6 +21,8 @@ ARG RUST_LOG_STYLE=always
 
 ARG SQLITE_PATH
 ARG TELOXIDE_TOKEN
+ARG RAILWAY_GIT_BRANCH
+ARG RAILWAY_GIT_COMMIT_SHA
 
 COPY --from=builder /src/target/release/maiq-bot maiq-bot
 

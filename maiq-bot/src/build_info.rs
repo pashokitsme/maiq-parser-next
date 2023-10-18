@@ -1,7 +1,7 @@
 use std::sync::OnceLock;
 use std::time::Duration;
 
-use build_info::chrono::FixedOffset;
+use maiq_parser_next::utils::time::*;
 
 build_info::build_info!(fn info);
 
@@ -10,13 +10,8 @@ pub fn build_info() -> &'static str {
   INIT.get_or_init(|| {
     let info = info();
 
-    let git = info.version_control.as_ref().unwrap().git();
-    let git = git.as_ref().unwrap();
-
-    let offset = FixedOffset::east_opt(3 * 3600).unwrap();
-    let took = info.timestamp - git.commit_timestamp;
-    let took = Duration::from_secs(took.num_seconds() as u64);
-    let took = pretty_duration::pretty_duration(&took, None);
+    let branch = std::env::var("RAILWAY_GIT_BRANCH").unwrap_or_default();
+    let commit = std::env::var("RAILWAY_GIT_COMMIT_SHA").unwrap_or_default();
 
     let ver = crate::reply!(
       "build_info.md",
@@ -27,10 +22,12 @@ pub fn build_info() -> &'static str {
       rustc_version = info.compiler.version,
       rustc_triple = info.compiler.host_triple,
       o = info.optimization_level,
-      branch = git.branch.as_ref().unwrap(),
-      commit = git.commit_short_id,
-      deployed_time = info.timestamp.with_timezone(&offset).format("%d.%m.%Y %H:%m:%S"),
-      deploy_time_took = took
+      branch = branch,
+      commit = commit.split_at(7).0,
+      deployed_time = info
+        .timestamp
+        .with_timezone(&FixedOffset::east_opt(3 * 3600).unwrap())
+        .format("%d.%m.%Y %H:%m:%S")
     );
     ver
   })
