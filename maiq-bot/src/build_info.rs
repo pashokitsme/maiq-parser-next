@@ -1,5 +1,4 @@
 use std::sync::OnceLock;
-use std::time::Duration;
 
 use maiq_parser_next::utils::time::*;
 
@@ -18,7 +17,6 @@ pub fn build_info() -> &'static str {
       name = info.crate_info.name,
       version = info.crate_info.version,
       profile = info.profile,
-      triple = info.target.triple,
       rustc_version = info.compiler.version,
       rustc_triple = info.compiler.host_triple,
       o = info.optimization_level,
