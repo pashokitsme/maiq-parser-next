@@ -18,7 +18,6 @@ macro_rules! callbacks {
     }
 
     pub trait Callbacks {
-      fn data(&self) -> Option<&str>;
       $(async fn $fn_name(self, $($($arg_name: $tt),*)?) -> Result<()>;)*
     }
 
