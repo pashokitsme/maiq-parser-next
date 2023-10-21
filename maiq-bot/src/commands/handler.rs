@@ -1,10 +1,13 @@
+use crate::callbacks::Callback;
 use crate::commands::*;
 use crate::error::*;
+use crate::handler::Handler;
 use crate::reply;
-use crate::Handler;
 use crate::Result;
 
 use maiq_parser_next::prelude::*;
+use teloxide::payloads::SendMessageSetters;
+use teloxide::types::InlineKeyboardMarkup;
 
 impl Commands for Handler {
   async fn start(self) -> Result<()> {
@@ -66,6 +69,15 @@ impl Commands for Handler {
 
   async fn version(self) -> Result<()> {
     self.reply(crate::build_info::build_info()).await?;
+    Ok(())
+  }
+
+  async fn test_callback(self) -> Result<()> {
+    let buttons = [[Callback::Test.with_text("Кнопка!").into()]];
+    self
+      .reply("Тест")
+      .reply_markup(InlineKeyboardMarkup::new(buttons.into_iter()))
+      .await?;
     Ok(())
   }
 }

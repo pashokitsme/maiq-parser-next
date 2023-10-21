@@ -14,17 +14,19 @@ use parser::start_parser_service;
 use teloxide::dptree::deps;
 use teloxide::prelude::*;
 
+use callbacks::*;
 use commands::*;
 
 use dptree as dp;
 use teloxide::dispatching::UpdateHandler;
 use teloxide::utils::command::BotCommands;
 
+use handler::Handler;
+
 #[macro_use]
 extern crate log;
 
 pub use error::Error;
-pub use handler::Handler;
 
 pub type Result<T> = std::result::Result<T, Error>;
 pub type SnapshotParserImpl = SnapshotParser4;
@@ -43,7 +45,8 @@ macro_rules! reply {
 }
 
 pub trait Caller {
-  fn caller(&self) -> String;
+  fn caller(&self) -> Option<&teloxide::types::User>;
+  fn caller_name(&self) -> String;
 }
 
 pub async fn setup_bot() -> Result<Bot> {
@@ -109,23 +112,30 @@ async fn set_commands(bot: &Bot) -> Result<()> {
 }
 
 fn distatch_tree() -> UpdateHandler<Error> {
-  dp::entry().branch(
-    Update::filter_message()
-      .filter(|msg: Message| msg.text().is_some())
-      .filter_map_async(Handler::new)
-      .chain(
-        dp::entry()
-          .branch(
-            dp::entry()
-              .filter_command::<Command>()
-              .endpoint(Command::execute::<Handler>),
-          )
-          .branch(
-            dp::entry()
-              .filter(|msg: Message| msg.from().map(|user| user.id.0 == DEVELOPER_ID).unwrap_or(false))
-              .filter_command::<DeveloperCommand>()
-              .endpoint(DeveloperCommand::execute::<Handler>),
-          ),
-      ),
-  )
+  dp::entry()
+    .branch(
+      Update::filter_message()
+        .filter(|msg: Message| msg.text().is_some())
+        .filter_map_async(Handler::with_message)
+        .chain(
+          dp::entry()
+            .branch(
+              dp::entry()
+                .filter_command::<Command>()
+                .endpoint(Command::execute::<Handler>),
+            )
+            .branch(
+              dp::entry()
+                .filter(|msg: Message| msg.from().map(|user| user.id.0 == DEVELOPER_ID).unwrap_or(false))
+                .filter_command::<DeveloperCommand>()
+                .endpoint(DeveloperCommand::execute::<Handler>),
+            ),
+        ),
+    )
+    .branch(
+      Update::filter_callback_query()
+        .filter_map(filter_callback)
+        .filter_map_async(Handler::with_callback)
+        .endpoint(Callback::execute::<Handler>),
+    )
 }
