@@ -1,14 +1,13 @@
 mod build_info;
+mod callbacks;
 mod commands;
 mod error;
 mod format;
-mod handler;
 mod parser;
 
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
-use handler::Handler;
 use maiq_parser_next::prelude::*;
 use parser::start_parser_service;
 use teloxide::dptree::deps;
@@ -107,19 +106,19 @@ fn distatch_tree() -> UpdateHandler<Error> {
   dp::entry().branch(
     Update::filter_message()
       .filter(|msg: Message| msg.text().is_some())
-      .filter_map_async(Handler::new)
+      .filter_map_async(commands::Handler::new)
       .chain(
         dp::entry()
           .branch(
             dp::entry()
               .filter_command::<Command>()
-              .endpoint(Command::execute::<Handler>),
+              .endpoint(Command::execute::<commands::Handler>),
           )
           .branch(
             dp::entry()
               .filter(|msg: Message| msg.from().map(|user| user.id.0 == DEVELOPER_ID).unwrap_or(false))
               .filter_command::<DeveloperCommand>()
-              .endpoint(DeveloperCommand::execute::<Handler>),
+              .endpoint(DeveloperCommand::execute::<commands::Handler>),
           ),
       ),
   )

@@ -1,3 +1,6 @@
+mod handler;
+pub use handler::*;
+
 use crate::Result;
 use teloxide::macros::BotCommands;
 
