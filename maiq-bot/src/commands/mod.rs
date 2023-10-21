@@ -35,7 +35,7 @@ macro_rules! cmds {
 
     impl Command {
       pub async fn execute<C: Commands + Caller>(self, executor: C) -> Result<()> {
-        info!(target: "command", "executing: {:?}; executor: {}", self, executor.caller());
+        info!(target: "command", "executing: {:?}; caller: {}", self, executor.caller());
         match self {
           $(Command::$name$(($($arg),*))? => executor.$fn_name($($($arg),*)?).await?),*
         }
@@ -45,7 +45,7 @@ macro_rules! cmds {
 
     impl DeveloperCommand {
       pub async fn execute<D: DeveloperCommands + Caller>(self, executor: D) -> Result<()> {
-        info!(target: "dev-command", "executing: {:?}; executor: {}", self, executor.caller());
+        info!(target: "dev-command", "executing: {:?}; caller: {}", self, executor.caller());
         match self {
           $(DeveloperCommand::$dev_name$(($($dev_arg),*))? => executor.$dev_fn_name($($($dev_arg),*)?).await?),*
         }
