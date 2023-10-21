@@ -1,9 +1,10 @@
 mod handler;
 pub use handler::*;
 
-use crate::Result;
-use crate::Caller;
 use teloxide::macros::BotCommands;
+
+use crate::Caller;
+use crate::Result;
 
 macro_rules! cmds {
   {
@@ -35,7 +36,7 @@ macro_rules! cmds {
 
     impl Command {
       pub async fn execute<C: Commands + Caller>(self, executor: C) -> Result<()> {
-        info!(target: "command", "executing: {:?}; caller: {}", self, executor.caller());
+        info!(target: "command", "executing: {:?}; caller: {}", self, executor.caller_name());
         match self {
           $(Command::$name$(($($arg),*))? => executor.$fn_name($($($arg),*)?).await?),*
         }
@@ -45,7 +46,7 @@ macro_rules! cmds {
 
     impl DeveloperCommand {
       pub async fn execute<D: DeveloperCommands + Caller>(self, executor: D) -> Result<()> {
-        info!(target: "dev-command", "executing: {:?}; caller: {}", self, executor.caller());
+        info!(target: "dev-command", "executing: {:?}; caller: {}", self, executor.caller_name());
         match self {
           $(DeveloperCommand::$dev_name$(($($dev_arg),*))? => executor.$dev_fn_name($($($dev_arg),*)?).await?),*
         }
@@ -66,7 +67,8 @@ cmds! {
     MyGroups[desc: "my-groups"] => show_my_groups,
     AddGroup[desc: "add-group", args: (name: String)] => add_group,
     RemoveGroup[desc: "remove-group", args: (name: String)] => remove_group,
-    Version[desc: "version"] => version
+    Version[desc: "version"] => version,
+    TestCallback[desc: "test-callback"] => test_callback
   },
   dev: {
     Test => test

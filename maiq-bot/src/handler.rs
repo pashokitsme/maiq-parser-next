@@ -22,14 +22,45 @@ pub struct Handler {
   pub message: Message,
   pub parser: SnapshotParser,
   pub pool: Arc<Pool>,
+  caller: Option<teloxide::types::User>,
+  callback_id: Option<String>,
+  callback_data: Option<String>,
 }
 
 impl Handler {
-  pub async fn new(bot: Bot, message: Message, parser: SnapshotParser, pool: Arc<Pool>) -> Option<Self> {
+  pub async fn with_message(bot: Bot, message: Message, parser: SnapshotParser, pool: Arc<Pool>) -> Option<Self> {
+    let caller = message.from().cloned();
     match User::get_by_id_or_create(message.chat.id.0, &pool).await {
-      Ok(user) => Some(Self { bot, message, parser, user, pool }),
+      Ok(user) => Some(Self { bot, message, parser, user, pool, caller, callback_id: None, callback_data: None }),
       Err(err) => {
         error!(target: "commands", "can't query user model id {}; error: {:?}", message.chat.id.0, err);
+        None
+      }
+    }
+  }
+
+  pub async fn with_callback(bot: Bot, query: CallbackQuery, parser: SnapshotParser, pool: Arc<Pool>) -> Option<Self> {
+    let message = match query.message {
+      Some(msg) => msg,
+      None => {
+        error!(target: "callback", "no message in query");
+        return None;
+      }
+    };
+
+    match User::get_by_id_or_create(query.from.id.0 as i64, &pool).await {
+      Ok(user) => Some(Self {
+        bot,
+        message,
+        parser,
+        user,
+        caller: Some(query.from),
+        pool,
+        callback_id: Some(query.id),
+        callback_data: query.data,
+      }),
+      Err(err) => {
+        error!(target: "commands", "can't query user model id {}; error: {:?}", query.from.id.0 as i64, err);
         None
       }
     }
@@ -63,6 +94,17 @@ impl Handler {
     Ok(())
   }
 
+  pub async fn answer(&self) -> Result<()> {
+    if let Some(ref callback_id) = self.callback_id {
+      self.answer_callback_query(callback_id).await?;
+    }
+    Ok(())
+  }
+
+  pub fn data(&self) -> Option<&str> {
+    self.callback_data.as_deref()
+  }
+
   pub fn reply<S: Into<String>>(&self, message: S) -> JsonRequest<SendMessage> {
     let send = self
       .send_message(self.message.chat.id, message)
@@ -85,8 +127,12 @@ impl Deref for Handler {
 }
 
 impl Caller for Handler {
-  fn caller(&self) -> String {
-    if let Some(user) = self.message.from() {
+  fn caller(&self) -> Option<&teloxide::types::User> {
+    self.caller.as_ref()
+  }
+
+  fn caller_name(&self) -> String {
+    if let Some(user) = self.caller() {
       format!("{} @{} <{}>", user.full_name(), user.username.as_deref().unwrap_or("<none>"), user.id.0)
     } else {
       let chat = &self.message.chat;
