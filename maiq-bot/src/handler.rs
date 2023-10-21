@@ -24,14 +24,13 @@ pub struct Handler {
   pub pool: Arc<Pool>,
   caller: Option<teloxide::types::User>,
   callback_id: Option<String>,
-  callback_data: Option<String>,
 }
 
 impl Handler {
   pub async fn with_message(bot: Bot, message: Message, parser: SnapshotParser, pool: Arc<Pool>) -> Option<Self> {
     let caller = message.from().cloned();
     match User::get_by_id_or_create(message.chat.id.0, &pool).await {
-      Ok(user) => Some(Self { bot, message, parser, user, pool, caller, callback_id: None, callback_data: None }),
+      Ok(user) => Some(Self { bot, message, parser, user, pool, caller, callback_id: None }),
       Err(err) => {
         error!(target: "commands", "can't query user model id {}; error: {:?}", message.chat.id.0, err);
         None
@@ -49,16 +48,7 @@ impl Handler {
     };
 
     match User::get_by_id_or_create(query.from.id.0 as i64, &pool).await {
-      Ok(user) => Some(Self {
-        bot,
-        message,
-        parser,
-        user,
-        caller: Some(query.from),
-        pool,
-        callback_id: Some(query.id),
-        callback_data: query.data,
-      }),
+      Ok(user) => Some(Self { bot, message, parser, user, caller: Some(query.from), pool, callback_id: Some(query.id) }),
       Err(err) => {
         error!(target: "commands", "can't query user model id {}; error: {:?}", query.from.id.0 as i64, err);
         None
@@ -99,10 +89,6 @@ impl Handler {
       self.answer_callback_query(callback_id).await?;
     }
     Ok(())
-  }
-
-  pub fn data(&self) -> Option<&str> {
-    self.callback_data.as_deref()
   }
 
   pub fn reply<S: Into<String>>(&self, message: S) -> JsonRequest<SendMessage> {
