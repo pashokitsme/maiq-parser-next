@@ -11,22 +11,22 @@ use crate::Result;
 use teloxide::types::InlineKeyboardButton;
 
 macro_rules! callbacks {
-  {$($name: ident => $fn_name: ident),*} => {
+  {$($name: ident$(($($arg_name: ident: $tt: ty),*))? => $fn_name: ident),*} => {
     #[derive(Serialize, Deserialize, Clone, Debug)]
     pub enum Callback {
-      $($name),*
+      $($name$($({$arg_name: $tt})*,)?)*
     }
 
     pub trait Callbacks {
       fn data(&self) -> Option<&str>;
-      $(async fn $fn_name(self) -> Result<()>;)*
+      $(async fn $fn_name(self, $($($arg_name: $tt),*)?) -> Result<()>;)*
     }
 
     impl Callback {
       pub async fn execute<C: Callbacks + Caller>(self, executor: C) -> Result<()> {
         info!(target: "callback", "executing: {:?}; caller: {}", self, executor.caller_name());
         match self {
-          $(Callback::$name => executor.$fn_name().await?),*
+          $(Callback::$name$({$($arg_name),*})? => executor.$fn_name($($($arg_name)*,)?).await?),*
         };
         Ok(())
       }
@@ -61,5 +61,5 @@ pub fn filter_callback(query: CallbackQuery) -> Option<Callback> {
 }
 
 callbacks! {
-  Test => test
+  Test(arg: i32) => test
 }
