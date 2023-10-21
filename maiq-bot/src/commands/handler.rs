@@ -73,7 +73,7 @@ impl Commands for Handler {
   }
 
   async fn test_callback(self) -> Result<()> {
-    let buttons = [[Callback::Test.with_text("Кнопка!").into()]];
+    let buttons = [[Callback::Test { arg: 15 }.with_text("Кнопка!").into()]];
     self
       .reply("Тест")
       .reply_markup(InlineKeyboardMarkup::new(buttons.into_iter()))

@@ -8,8 +8,8 @@ impl Callbacks for Handler {
     self.data()
   }
 
-  async fn test(self) -> Result<()> {
-    self.reply("Тык!").await?;
+  async fn test(self, arg: i32) -> Result<()> {
+    self.reply(format!("Тык! {}", arg)).await?;
     self.answer().await?;
     Ok(())
   }
