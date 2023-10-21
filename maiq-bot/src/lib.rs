@@ -3,6 +3,7 @@ mod callbacks;
 mod commands;
 mod error;
 mod format;
+mod handler;
 mod parser;
 
 use std::sync::Arc;
@@ -23,6 +24,7 @@ use teloxide::utils::command::BotCommands;
 extern crate log;
 
 pub use error::Error;
+pub use handler::Handler;
 
 pub type Result<T> = std::result::Result<T, Error>;
 pub type SnapshotParserImpl = SnapshotParser4;
@@ -110,19 +112,19 @@ fn distatch_tree() -> UpdateHandler<Error> {
   dp::entry().branch(
     Update::filter_message()
       .filter(|msg: Message| msg.text().is_some())
-      .filter_map_async(commands::Handler::new)
+      .filter_map_async(Handler::new)
       .chain(
         dp::entry()
           .branch(
             dp::entry()
               .filter_command::<Command>()
-              .endpoint(Command::execute::<commands::Handler>),
+              .endpoint(Command::execute::<Handler>),
           )
           .branch(
             dp::entry()
               .filter(|msg: Message| msg.from().map(|user| user.id.0 == DEVELOPER_ID).unwrap_or(false))
               .filter_command::<DeveloperCommand>()
-              .endpoint(DeveloperCommand::execute::<commands::Handler>),
+              .endpoint(DeveloperCommand::execute::<Handler>),
           ),
       ),
   )
