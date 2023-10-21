@@ -40,6 +40,10 @@ macro_rules! reply {
   }
 }
 
+pub trait Caller {
+  fn caller(&self) -> String;
+}
+
 pub async fn setup_bot() -> Result<Bot> {
   let bot = Bot::from_env();
   let me = bot.get_me().await?;

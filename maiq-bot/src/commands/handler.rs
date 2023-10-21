@@ -5,6 +5,7 @@ use crate::commands::*;
 use crate::error::*;
 use crate::format::*;
 use crate::reply;
+use crate::Caller;
 use crate::Result;
 use crate::SnapshotParser;
 
@@ -37,37 +38,6 @@ impl Handler {
     }
   }
 
-  fn executor(&self) -> String {
-    if let Some(user) = self.message.from() {
-      format!("{} @{} <{}>", user.full_name(), user.username.as_deref().unwrap_or("<none>"), user.id.0)
-    } else {
-      let chat = &self.message.chat;
-      format!("unknown user; chat {} <{}>", chat.title().unwrap_or("<none title>"), chat.id.0)
-    }
-  }
-
-  fn reply<S: Into<String>>(&self, message: S) -> JsonRequest<SendMessage> {
-    let send = self
-      .send_message(self.message.chat.id, message)
-      .disable_web_page_preview(true)
-      .parse_mode(teloxide::types::ParseMode::Html);
-    if let Some(thread_id) = self.message.thread_id {
-      send.message_thread_id(thread_id)
-    } else {
-      send
-    }
-  }
-}
-
-impl Deref for Handler {
-  type Target = Bot;
-
-  fn deref(&self) -> &Self::Target {
-    &self.bot
-  }
-}
-
-impl Handler {
   async fn reply_snapshot(&self, snapshot: &Snapshot) -> Result<()> {
     match self.user.config().groups().len() {
       0 => {
@@ -95,13 +65,40 @@ impl Handler {
     }
     Ok(())
   }
+
+  fn reply<S: Into<String>>(&self, message: S) -> JsonRequest<SendMessage> {
+    let send = self
+      .send_message(self.message.chat.id, message)
+      .disable_web_page_preview(true)
+      .parse_mode(teloxide::types::ParseMode::Html);
+    if let Some(thread_id) = self.message.thread_id {
+      send.message_thread_id(thread_id)
+    } else {
+      send
+    }
+  }
+}
+
+impl Deref for Handler {
+  type Target = Bot;
+
+  fn deref(&self) -> &Self::Target {
+    &self.bot
+  }
+}
+
+impl Caller for Handler {
+  fn caller(&self) -> String {
+    if let Some(user) = self.message.from() {
+      format!("{} @{} <{}>", user.full_name(), user.username.as_deref().unwrap_or("<none>"), user.id.0)
+    } else {
+      let chat = &self.message.chat;
+      format!("unknown user; chat {} <{}>", chat.title().unwrap_or("<none title>"), chat.id.0)
+    }
+  }
 }
 
 impl Commands for Handler {
-  fn executor(&self) -> String {
-    self.executor()
-  }
-
   async fn start(self) -> Result<()> {
     let username = self.message.from().map(|u| u.full_name()).unwrap_or_default();
     self.reply(reply!("start.md", username = username)).await?;
@@ -166,10 +163,6 @@ impl Commands for Handler {
 }
 
 impl DeveloperCommands for Handler {
-  fn executor(&self) -> String {
-    self.executor()
-  }
-
   async fn test(self) -> Result<()> {
     todo!()
   }
