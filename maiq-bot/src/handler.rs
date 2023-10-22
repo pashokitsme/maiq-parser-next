@@ -3,6 +3,7 @@ use std::sync::Arc;
 
 use maiq_db::models::*;
 use maiq_parser_next::prelude::*;
+use teloxide::payloads::EditMessageText;
 use teloxide::prelude::*;
 
 use maiq_db::Pool;
@@ -89,6 +90,13 @@ impl Handler {
       self.answer_callback_query(callback_id).await?;
     }
     Ok(())
+  }
+
+  pub fn edit<S: Into<String>>(&self, message: S) -> JsonRequest<EditMessageText> {
+    self
+      .edit_message_text(self.message.chat.id, self.message.id, message)
+      .disable_web_page_preview(true)
+      .parse_mode(teloxide::types::ParseMode::Html)
   }
 
   pub fn reply<S: Into<String>>(&self, message: S) -> JsonRequest<SendMessage> {

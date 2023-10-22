@@ -4,6 +4,7 @@ pub use handler::*;
 use serde::Deserialize;
 use serde::Serialize;
 use teloxide::types::CallbackQuery;
+use teloxide::types::InlineKeyboardMarkup;
 
 use crate::Caller;
 use crate::Result;
@@ -45,10 +46,22 @@ impl Callback {
   }
 }
 
+impl<T: Into<String>> CallbackPayload<T> {
+  pub fn into_row(self) -> [[InlineKeyboardButton; 1]; 1] {
+    [[self.into()]]
+  }
+}
+
 impl<T: Into<String>> From<CallbackPayload<T>> for InlineKeyboardButton {
   fn from(val: CallbackPayload<T>) -> Self {
     let data = String::from_utf8(bincode::serialize(&val.kind).unwrap()).unwrap();
     InlineKeyboardButton::callback(val.text, data)
+  }
+}
+
+impl<T: Into<String>> From<CallbackPayload<T>> for InlineKeyboardMarkup {
+  fn from(value: CallbackPayload<T>) -> Self {
+    InlineKeyboardMarkup::new(value.into_row())
   }
 }
 
@@ -62,5 +75,6 @@ pub fn filter_callback(query: CallbackQuery) -> Option<Callback> {
 callbacks! {
   Test(arg: i32) => test,
   SetMyGroups => show_my_groups,
+  ShowConfig => show_config,
   SetGroup(name: String) => set_group
 }

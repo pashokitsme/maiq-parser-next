@@ -54,7 +54,6 @@ impl Commands for Handler {
     }
 
     self.user.config_mut().add_group(name, &self.pool).await?;
-
     Ok(())
   }
 

@@ -44,6 +44,13 @@ macro_rules! reply {
   }
 }
 
+#[macro_export]
+macro_rules! markup {
+  ($e: expr) => {
+    InlineKeyboardMarkup::new($e)
+  };
+}
+
 pub trait Caller {
   fn caller(&self) -> Option<&teloxide::types::User>;
   fn caller_name(&self) -> String;
