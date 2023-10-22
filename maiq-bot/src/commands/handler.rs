@@ -56,15 +56,6 @@ impl Commands for Handler {
     self.reply(crate::build_info::build_info()).await?;
     Ok(())
   }
-
-  async fn test_callback(self) -> Result<()> {
-    let buttons = [[Callback::Test { arg: 15 }.with_text("Кнопка!").into()]];
-    self
-      .reply("Тест")
-      .reply_markup(InlineKeyboardMarkup::new(buttons.into_iter()))
-      .await?;
-    Ok(())
-  }
 }
 
 impl DeveloperCommands for Handler {

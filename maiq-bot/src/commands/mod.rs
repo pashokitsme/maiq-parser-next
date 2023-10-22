@@ -65,8 +65,7 @@ cmds! {
     About[desc: "about"] => about,
     Config[desc: "config"] => show_config,
     MyGroups[desc: "my-groups"] => show_my_groups_ex,
-    Version[desc: "version"] => version,
-    TestCallback[desc: "test-callback"] => test_callback
+    Version[desc: "version"] => version
   },
   dev: {
     Test => test
