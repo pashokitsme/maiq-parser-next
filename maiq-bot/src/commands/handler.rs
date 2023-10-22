@@ -22,7 +22,10 @@ impl Commands for Handler {
   }
 
   async fn show_config(self) -> Result<()> {
-    self.reply(reply!("config.md")).await?;
+    self
+      .reply(reply!("config.md"))
+      .reply_markup(InlineKeyboardMarkup::new([[Callback::SetMyGroups.with_text("Настроить группы").into()]]))
+      .await?;
     Ok(())
   }
 

@@ -14,7 +14,7 @@ macro_rules! callbacks {
   {$($name: ident$(($($arg_name: ident: $tt: ty),*))? => $fn_name: ident),*} => {
     #[derive(Serialize, Deserialize, Clone, Debug)]
     pub enum Callback {
-      $($name$($({$arg_name: $tt})*,)?)*
+      $($name$($({$arg_name: $tt}),*)?),*
     }
 
     pub trait Callbacks {
@@ -60,5 +60,7 @@ pub fn filter_callback(query: CallbackQuery) -> Option<Callback> {
 }
 
 callbacks! {
-  Test(arg: i32) => test
+  Test(arg: i32) => test,
+  SetMyGroups => show_my_groups,
+  SetGroup(name: String) => set_group
 }
