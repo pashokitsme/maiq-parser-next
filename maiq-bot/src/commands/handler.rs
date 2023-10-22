@@ -1,11 +1,9 @@
 use crate::callbacks::Callback;
 use crate::commands::*;
-use crate::error::*;
 use crate::handler::Handler;
 use crate::reply;
 use crate::Result;
 
-use maiq_parser_next::prelude::*;
 use teloxide::payloads::SendMessageSetters;
 use teloxide::types::InlineKeyboardMarkup;
 
@@ -47,22 +45,7 @@ impl Commands for Handler {
 
     Ok(())
   }
-
-  async fn add_group(mut self, name: String) -> Result<()> {
-    if !GROUP_NAMES.contains(&name.as_str()) {
-      return Err(CommandError::GroupNotExists(name).into());
-    }
-
-    self.user.config_mut().add_group(name, &self.pool).await?;
-    Ok(())
-  }
-
-  async fn remove_group(mut self, name: String) -> Result<()> {
-    self.user.config_mut().remove_group(name, &self.pool).await?;
-    Ok(())
-  }
-
-  async fn show_my_groups(self) -> Result<()> {
+  async fn show_my_groups_ex(self) -> Result<()> {
     self
       .reply(format!("Твои группы: {:?}", self.user.config().groups().as_ref()))
       .await?;

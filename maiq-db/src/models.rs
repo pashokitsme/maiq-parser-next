@@ -62,4 +62,8 @@ impl Config {
   pub fn groups(&self) -> Iter<String> {
     self.target_groups.iter()
   }
+
+  pub fn has_group<S: AsRef<str>>(&self, name: S) -> bool {
+    self.groups().any(|g| g == name.as_ref())
+  }
 }

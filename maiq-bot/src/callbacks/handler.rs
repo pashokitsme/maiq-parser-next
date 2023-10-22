@@ -14,7 +14,7 @@ use super::Callbacks;
 impl Handler {
   fn get_my_groups(&self) -> InlineKeyboardMarkup {
     let into_button = |group: &&str| {
-      let name = if self.user.config().groups().any(|g| g == group) { format!("✅ {}", group) } else { group.to_string() };
+      let name = if self.user.config().has_group(group) { format!("✅ {}", group) } else { group.to_string() };
       Callback::SetGroup { name: group.to_string() }.with_text(name).into()
     };
 
@@ -40,12 +40,16 @@ impl Callbacks for Handler {
     let markup = self
       .get_my_groups()
       .append_row([Callback::ShowConfig.with_text("OK").into()]);
-    self.edit("test").reply_markup(markup).await?;
+    self.edit(reply!(const "set_groups.md")).reply_markup(markup).await?;
     Ok(())
   }
 
-  async fn set_group(self, name: String) -> Result<()> {
-    Ok(())
+  async fn set_group(mut self, name: String) -> Result<()> {
+    match self.user.config().has_group(&name) {
+      true => self.user.config_mut().remove_group(name, &self.pool).await?,
+      false => self.user.config_mut().add_group(name, &self.pool).await?,
+    }
+    self.show_my_groups().await
   }
 
   async fn show_config(self) -> Result<()> {
