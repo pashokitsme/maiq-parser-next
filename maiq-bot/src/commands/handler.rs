@@ -17,13 +17,13 @@ impl Commands for Handler {
   }
 
   async fn about(self) -> Result<()> {
-    self.reply(reply!("about.md")).await?;
+    self.reply(reply!(const "about.md")).await?;
     Ok(())
   }
 
   async fn show_config(self) -> Result<()> {
     self
-      .reply(reply!("config.md"))
+      .reply(reply!(const "config.md"))
       .reply_markup(InlineKeyboardMarkup::new([[Callback::SetMyGroups.with_text("Настроить группы").into()]]))
       .await?;
     Ok(())
@@ -33,7 +33,7 @@ impl Commands for Handler {
     if let Some(snapshot) = self.parser.read().await.latest_today() {
       self.reply_snapshot(snapshot).await?;
     } else {
-      self.reply(reply!("err/no_timetable.md")).await?;
+      self.reply(reply!(const "err/no_timetable.md")).await?;
     }
     Ok(())
   }
@@ -42,7 +42,7 @@ impl Commands for Handler {
     if let Some(snapshot) = self.parser.read().await.latest_next() {
       self.reply_snapshot(snapshot).await?;
     } else {
-      self.reply(reply!("err/no_timetable.md")).await?;
+      self.reply(reply!(const "err/no_timetable.md")).await?;
     }
 
     Ok(())

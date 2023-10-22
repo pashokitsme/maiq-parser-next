@@ -50,7 +50,7 @@ impl Callbacks for Handler {
 
   async fn show_config(self) -> Result<()> {
     self
-      .edit(reply!("config.md"))
+      .edit(reply!(const "config.md"))
       .reply_markup(Callback::SetMyGroups.with_text("Настроить группы").into())
       .await?;
     Ok(())
