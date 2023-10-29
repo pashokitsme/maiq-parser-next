@@ -45,6 +45,7 @@ impl Commands for Handler {
 
     Ok(())
   }
+
   async fn show_my_groups_ex(self) -> Result<()> {
     self
       .reply(format!("Твои группы: {:?}", self.user.config().groups().as_ref()))

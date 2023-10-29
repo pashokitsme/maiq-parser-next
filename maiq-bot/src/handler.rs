@@ -70,12 +70,18 @@ impl Handler {
         self.reply(format).await?;
       }
       _ => {
-        for format in self
+        let groups = self
           .user
           .config()
           .groups()
-          .filter_map(|group| FormatSnapshot::select_group(snapshot, group))
-        {
+          .filter_map(|group| FormatSnapshot::select_group(snapshot, group));
+
+        if groups.clone().count() == 0 {
+          self.reply(reply!(const "err/no_timetable_many.md")).await?;
+          return Ok(());
+        }
+
+        for format in groups {
           self
             .reply(reply!("snapshot/many_groups.md", group_name = format.group_name(), formatted = format.to_string()))
             .await?;
