@@ -25,6 +25,8 @@ pub type LoopedParserPair<P> = (LoopedSnapshotParser<P>, Receiver<Result<(Snapsh
 type Changes = Vec<String>;
 type UpdateCallback = Result<(Snapshot, Changes), Error>;
 
+const DEFAULT_TIME_BOUNDS: std::ops::Range<u32> = 7..18;
+
 #[derive(Default)]
 pub struct SnapshotParserBuilder {
   today_remote_url: Option<Url>,
@@ -72,21 +74,30 @@ impl SnapshotParserBuilder {
 pub struct LoopedSnapshotParser<P: Parser + Send + Sync + 'static> {
   interval: Interval,
   parser: Arc<RwLock<SnapshotParser<P>>>,
+  time_bounds: std::ops::Range<u32>,
 }
 
 impl<P: Parser + Send + Sync + 'static> LoopedSnapshotParser<P> {
   pub fn new(parser: Arc<RwLock<SnapshotParser<P>>>) -> Self {
-    Self { interval: tokio::time::interval(Duration::from_secs(60 * 5)), parser }
+    Self { interval: tokio::time::interval(Duration::from_secs(60 * 5)), parser, time_bounds: DEFAULT_TIME_BOUNDS }
   }
 
   pub fn with_interval(parser: Arc<RwLock<SnapshotParser<P>>>, interval: Duration) -> Self {
-    Self { interval: tokio::time::interval(interval), parser }
+    Self { interval: tokio::time::interval(interval), parser, time_bounds: DEFAULT_TIME_BOUNDS }
+  }
+
+  pub fn with_time_bounds(self, time_bounds: std::ops::Range<u32>) -> Self {
+    Self { time_bounds, ..self }
   }
 
   pub async fn start(mut self) {
     let mut ready = false;
     loop {
       self.interval.tick().await;
+      if !self.time_bounds.contains(&DateTime::now().time().hour()) {
+        continue;
+      }
+
       debug!(target: "parser", "tick!");
       let (today, next) = self.parser.read().await.check(ready).await;
       let mut parser = self.parser.write().await;
@@ -145,7 +156,11 @@ impl<P: Parser + Send + Sync + 'static> SnapshotParser<P> {
   }
 
   pub fn looped(self, interval: Duration) -> LoopedSnapshotParser<P> {
-    LoopedSnapshotParser { interval: tokio::time::interval(interval), parser: Arc::new(RwLock::new(self)) }
+    LoopedSnapshotParser {
+      interval: tokio::time::interval(interval),
+      parser: Arc::new(RwLock::new(self)),
+      time_bounds: DEFAULT_TIME_BOUNDS,
+    }
   }
 
   async fn parse_and_notify(&self, url: &Url, prev: Option<&Snapshot>, ready: bool) -> Result<Snapshot, Error> {
@@ -156,7 +171,9 @@ impl<P: Parser + Send + Sync + 'static> SnapshotParser<P> {
     }
 
     if let Err(ref err) = snapshot {
-      error!(target: "parser", "can't parse snapshot from {}: {:?}", url.as_str(), err);
+      if !err.can_be_skipped() {
+        error!(target: "parser", "can't parse snapshot from {}: {:?}", url.as_str(), err);
+      }
     }
 
     let changes = prev.distinct(snapshot.as_ref().ok(), &GROUP_NAMES);

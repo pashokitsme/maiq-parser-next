@@ -16,8 +16,6 @@ use maiq_db::Pool;
 use maiq_parser_next::parser::LoopedSnapshotParser;
 use maiq_parser_next::prelude::*;
 
-const TIME_BOUNDS: std::ops::Range<u32> = 8..18;
-
 pub fn start_parser_service(
   bot: Bot,
   parser: ParserPair<SnapshotParserImpl>,
@@ -38,17 +36,16 @@ pub fn start_parser_service(
   tokio::spawn(async move { parser_looped.start().await });
   tokio::spawn(async move {
     while let Some(update) = rx.recv().await {
-      if !TIME_BOUNDS.contains(&DateTime::now().time().hour()) {
-        continue;
-      }
-
       let res = match update {
         Ok((snapshot, changes)) if !changes.is_empty() => on_update(bot.clone(), pool.clone(), snapshot, changes).await,
         Err(err) => on_error(&bot, err).await,
         _ => Ok(()),
       };
+
       if let Err(err) = res {
-        error!(target: "rx-parser", "error during handling update: {:?}", err);
+        if !err.can_be_skipped() {
+          error!(target: "rx-parser", "error during handling update: {:?}", err);
+        }
       }
     }
     warn!(target: "parser", "parsing is stopped");

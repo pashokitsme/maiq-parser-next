@@ -8,6 +8,12 @@ pub enum Error {
   Database(maiq_db::error::Error),
 }
 
+impl Error {
+  pub fn can_be_skipped(&self) -> bool {
+    matches!(self, Self::Parser(maiq_parser_next::error::Error::NoHtmlTable))
+  }
+}
+
 impl From<RequestError> for Error {
   fn from(value: RequestError) -> Self {
     Self::Request(value)
