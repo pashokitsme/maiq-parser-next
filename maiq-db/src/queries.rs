@@ -101,6 +101,20 @@ impl User {
 
     Ok(self)
   }
+
+  pub async fn update_username(&mut self, name: String, pool: &Pool<Db>) -> Result<()> {
+    if matches!(self.cached_fullname.as_ref(), Some(cached) if cached.as_str() == name) {
+      return Ok(());
+    }
+
+    info!(target: "db", "update cached fullname {:?} -> {}", self.cached_fullname, name);
+    self.cached_fullname = Some(name);
+    sqlx::query!("update users set cached_fullname = $1", self.cached_fullname)
+      .execute(pool)
+      .await?;
+
+    Ok(())
+  }
 }
 
 impl Config {

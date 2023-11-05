@@ -31,7 +31,15 @@ impl Handler {
   pub async fn with_message(bot: Bot, message: Message, parser: SnapshotParser, pool: Arc<Pool>) -> Option<Self> {
     let caller = message.from().cloned();
     match User::get_by_id_or_create(message.chat.id.0, &pool).await {
-      Ok(user) => Some(Self { bot, message, parser, user, pool, caller, callback_id: None }),
+      Ok(user) => {
+        let mut handler = Self { bot, message, parser, user, pool, caller, callback_id: None };
+        handler
+          .user
+          .update_username(handler.caller_name(), &handler.pool)
+          .await
+          .ok()
+          .map(move |_| handler)
+      }
       Err(err) => {
         error!(target: "commands", "can't query user model id {}; error: {:?}", message.chat.id.0, err);
         None
@@ -49,7 +57,15 @@ impl Handler {
     };
 
     match User::get_by_id_or_create(query.from.id.0 as i64, &pool).await {
-      Ok(user) => Some(Self { bot, message, parser, user, caller: Some(query.from), pool, callback_id: Some(query.id) }),
+      Ok(user) => {
+        let mut handler = Self { bot, message, parser, user, caller: Some(query.from), pool, callback_id: Some(query.id) };
+        handler
+          .user
+          .update_username(handler.caller_name(), &handler.pool)
+          .await
+          .ok()
+          .map(move |_| handler)
+      }
       Err(err) => {
         error!(target: "commands", "can't query user model id {}; error: {:?}", query.from.id.0 as i64, err);
         None

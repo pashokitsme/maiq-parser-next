@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "update users set cached_fullname = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "3b3afcd976471c7eff41b4804fce2768e08ad031ec9372f2170304afba5cef59"
+}
