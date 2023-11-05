@@ -74,18 +74,6 @@ impl User {
     let mut tx = pool.begin().await?;
 
     sqlx::query!(
-      r#"update users 
-      set 
-        cached_fullname = $2,
-        modified_at = datetime()
-      where id = $1"#,
-      self.chat_id,
-      self.cached_fullname,
-    )
-    .execute(&mut *tx)
-    .await?;
-
-    sqlx::query!(
       r#"update configs
        set 
          is_notifies_enabled = $2,
@@ -109,9 +97,18 @@ impl User {
 
     info!(target: "db", "update cached fullname {:?} -> {}", self.cached_fullname, name);
     self.cached_fullname = Some(name);
-    sqlx::query!("update users set cached_fullname = $1", self.cached_fullname)
-      .execute(pool)
-      .await?;
+
+    sqlx::query!(
+      r#"update users 
+      set 
+        cached_fullname = $2,
+        modified_at = datetime()
+      where id = $1"#,
+      self.chat_id,
+      self.cached_fullname,
+    )
+    .execute(pool)
+    .await?;
 
     Ok(())
   }
