@@ -5,6 +5,7 @@ use serde::Deserialize;
 use serde::Serialize;
 use teloxide::types::CallbackQuery;
 use teloxide::types::InlineKeyboardMarkup;
+use teloxide::types::ReplyMarkup;
 
 use crate::Caller;
 use crate::Result;
@@ -62,6 +63,12 @@ impl<T: Into<String>> From<CallbackPayload<T>> for InlineKeyboardButton {
 impl<T: Into<String>> From<CallbackPayload<T>> for InlineKeyboardMarkup {
   fn from(value: CallbackPayload<T>) -> Self {
     InlineKeyboardMarkup::new(value.into_row())
+  }
+}
+
+impl<T: Into<String>> From<CallbackPayload<T>> for ReplyMarkup {
+  fn from(val: CallbackPayload<T>) -> Self {
+    val.into()
   }
 }
 

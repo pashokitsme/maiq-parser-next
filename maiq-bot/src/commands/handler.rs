@@ -5,7 +5,6 @@ use crate::reply;
 use crate::Result;
 
 use teloxide::payloads::SendMessageSetters;
-use teloxide::types::InlineKeyboardMarkup;
 
 impl Commands for Handler {
   async fn start(self) -> Result<()> {
@@ -22,7 +21,7 @@ impl Commands for Handler {
   async fn show_config(self) -> Result<()> {
     self
       .reply(reply!(const "config.md"))
-      .reply_markup(InlineKeyboardMarkup::new([[Callback::SetMyGroups.with_text("Настроить группы").into()]]))
+      .reply_markup(Callback::SetMyGroups.with_text("Настроить группы"))
       .await?;
     Ok(())
   }
