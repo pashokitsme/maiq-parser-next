@@ -5,6 +5,8 @@ use maiq_parser_next::prelude::*;
 pub struct FormatSnapshot<'a>(&'a Snapshot, FormatGroup<'a>);
 pub struct FormatGroup<'a>(pub &'a Group);
 pub struct FormatLecture<'a>(pub &'a Lecture);
+pub struct FormatDate<'a>(pub &'a DateTime);
+pub struct FormatWeekday<'a>(pub &'a Weekday);
 
 impl<'a> FormatSnapshot<'a> {
   pub fn select_group(snapshot: &'a Snapshot, name: &str) -> Option<Self> {
@@ -19,7 +21,7 @@ impl<'a> FormatSnapshot<'a> {
 impl<'a> Display for FormatSnapshot<'a> {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     let date = self.0.date();
-    writeln!(f, "{} {}, {}", random_emoji(), date.weekday(), date.format("%d.%m.%Y"))?;
+    writeln!(f, "{} {}, {}", random_emoji(), FormatWeekday(&date.weekday()), FormatDate(&date))?;
     writeln!(f)?;
     writeln!(f, "{}", self.1)
   }
@@ -49,6 +51,34 @@ impl<'a> Display for FormatLecture<'a> {
     }
 
     writeln!(f, "<b>· {}</b>", self.0.name())
+  }
+}
+
+impl<'a> Display for FormatWeekday<'a> {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    let weekday = match self.0 {
+      Weekday::Mon => "Понедельник",
+      Weekday::Tue => "Вторник",
+      Weekday::Wed => "Среда",
+      Weekday::Thu => "Четверг",
+      Weekday::Fri => "Пятница",
+      Weekday::Sat => "Суббота",
+      Weekday::Sun => "Воскресенье",
+    };
+    write!(f, "{}", weekday)
+  }
+}
+
+impl<'a> Display for FormatDate<'a> {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    let now = DateTime::now_date().date_naive();
+    let date = self.0.format("%d.%m.%Y");
+    match self.0.date_naive().signed_duration_since(now).num_days() {
+      0 => write!(f, "сегодня, {}", date),
+      1 => write!(f, "завтра, {}", date),
+      2 => write!(f, "послезавтра, {}", date),
+      _ => write!(f, "{}", date),
+    }
   }
 }
 
