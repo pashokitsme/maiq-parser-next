@@ -81,7 +81,7 @@ pub async fn start(bot: Bot, pool: maiq_db::Pool, parser: ParserPair<SnapshotPar
   let pool = Arc::new(pool);
   let parser = start_parser_service(bot.clone(), parser, pool.clone());
 
-  Dispatcher::builder(bot, distatch_tree())
+  Dispatcher::builder(bot, dispatch_tree())
     .worker_queue_size(16)
     .dependencies(deps![parser, pool])
     .build()
@@ -118,7 +118,7 @@ async fn set_commands(bot: &Bot) -> Result<()> {
   Ok(())
 }
 
-fn distatch_tree() -> UpdateHandler<Error> {
+fn dispatch_tree() -> UpdateHandler<Error> {
   dp::entry()
     .branch(
       Update::filter_message()
