@@ -46,13 +46,6 @@ impl Commands for Handler {
     Ok(())
   }
 
-  async fn show_my_groups_ex(self) -> Result<()> {
-    self
-      .reply(format!("Твои группы: {:?}", self.user.config().groups().as_ref()))
-      .await?;
-    Ok(())
-  }
-
   async fn version(self) -> Result<()> {
     self.reply(crate::build_info::build_info()).await?;
     Ok(())

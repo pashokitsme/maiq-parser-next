@@ -64,7 +64,6 @@ cmds! {
     Next[desc: "next"] => next,
     About[desc: "about"] => about,
     Config[desc: "config"] => show_config,
-    MyGroups[desc: "my-groups"] => show_my_groups_ex,
     Version[desc: "version"] => version
   },
   dev: {
