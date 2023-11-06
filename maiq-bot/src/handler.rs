@@ -56,7 +56,7 @@ impl Handler {
       }
     };
 
-    match User::get_by_id_or_create(query.from.id.0 as i64, &pool).await {
+    match User::get_by_id_or_create(message.chat.id.0, &pool).await {
       Ok(user) => {
         let mut handler = Self { bot, message, parser, user, caller: Some(query.from), pool, callback_id: Some(query.id) };
         handler
