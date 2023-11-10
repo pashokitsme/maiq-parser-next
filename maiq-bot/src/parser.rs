@@ -43,9 +43,7 @@ pub fn start_parser_service(
       };
 
       if let Err(err) = res {
-        if !err.can_be_skipped() {
-          error!(target: "rx-parser", "error during handling update: {:?}", err);
-        }
+        error!(target: "rx-parser", "error during handling update: {:?}", err);
       }
     }
     warn!(target: "parser", "parsing is stopped");
@@ -88,7 +86,9 @@ async fn on_update(bot: Bot, pool: Arc<Pool>, snapshot: Snapshot, changes: Vec<S
 }
 
 async fn on_error(_bot: &Bot, err: maiq_parser_next::error::Error) -> Result<()> {
-  warn!(target: "rx-parser", "error during parsing: {:?}", err);
+  if !err.can_be_skipped() {
+    warn!(target: "rx-parser", "error during parsing: {:?}", err);
+  }
   Ok(())
 }
 

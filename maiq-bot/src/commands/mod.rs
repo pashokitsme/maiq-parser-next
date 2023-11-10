@@ -1,5 +1,4 @@
 mod handler;
-pub use handler::*;
 
 use teloxide::macros::BotCommands;
 
