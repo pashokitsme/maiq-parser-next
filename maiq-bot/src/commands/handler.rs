@@ -1,6 +1,7 @@
 use crate::callbacks::Callback;
 use crate::commands::*;
 use crate::handler::Handler;
+use crate::markup;
 use crate::reply;
 use crate::Result;
 
@@ -21,7 +22,11 @@ impl Commands for Handler {
   async fn show_config(self) -> Result<()> {
     self
       .reply(reply!(const "config.md"))
-      .reply_markup(Callback::SetMyGroups.with_text("Настроить группы"))
+      .reply_markup(markup!([
+        [Callback::SetMyGroups.with_text("Настроить группы").into()],
+        [Callback::Close.with_text("Закрыть").into()]
+      ]
+      .into_iter()))
       .await?;
     Ok(())
   }

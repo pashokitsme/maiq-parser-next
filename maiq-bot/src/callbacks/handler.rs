@@ -1,4 +1,5 @@
 use teloxide::payloads::EditMessageTextSetters;
+use teloxide::requests::Requester;
 use teloxide::types::InlineKeyboardMarkup;
 
 use maiq_parser_next::prelude::*;
@@ -55,8 +56,16 @@ impl Callbacks for Handler {
   async fn show_config(self) -> Result<()> {
     self
       .edit(reply!(const "config.md"))
-      .reply_markup(Callback::SetMyGroups.with_text("Настроить группы").into())
+      .reply_markup(markup!([
+        [Callback::SetMyGroups.with_text("Настроить группы").into()],
+        [Callback::Close.with_text("Закрыть").into()]
+      ]))
       .await?;
+    Ok(())
+  }
+
+  async fn close(self) -> Result<()> {
+    self.delete_message(self.message.chat.id, self.message.id).await?;
     Ok(())
   }
 }

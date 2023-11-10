@@ -47,7 +47,7 @@ macro_rules! reply {
 #[macro_export]
 macro_rules! markup {
   ($e: expr) => {
-    InlineKeyboardMarkup::new($e)
+    teloxide::types::InlineKeyboardMarkup::new($e)
   };
 }
 

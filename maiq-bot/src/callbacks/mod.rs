@@ -62,13 +62,13 @@ impl<T: Into<String>> From<CallbackPayload<T>> for InlineKeyboardButton {
 
 impl<T: Into<String>> From<CallbackPayload<T>> for InlineKeyboardMarkup {
   fn from(value: CallbackPayload<T>) -> Self {
-    InlineKeyboardMarkup::new(value.into_row())
+    InlineKeyboardMarkup::new([[value.into(); 1]; 1])
   }
 }
 
 impl<T: Into<String>> From<CallbackPayload<T>> for ReplyMarkup {
-  fn from(val: CallbackPayload<T>) -> Self {
-    val.into()
+  fn from(value: CallbackPayload<T>) -> Self {
+    ReplyMarkup::InlineKeyboard(value.into())
   }
 }
 
@@ -83,5 +83,6 @@ callbacks! {
   Test(arg: i32) => test,
   SetMyGroups => show_my_groups,
   ShowConfig => show_config,
-  SetGroup(name: String) => set_group
+  SetGroup(name: String) => set_group,
+  Close => close
 }
