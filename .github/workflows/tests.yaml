@@ -1,4 +1,4 @@
-name: Run lint & tests
+name: Lint
 
 on:
   push:
@@ -17,8 +17,16 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup
-        uses: ./.github/actions/setup
+      - name: Setup toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+          components: clippy
+
+      - name: Setup sqlx-cli
+        uses: baptiste0928/cargo-install@v2
+        with:
+          crate: sqlx-cli
 
       - name: Linting
         run: cargo clippy --all-features --no-deps
@@ -30,8 +38,16 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup
-        uses: ./.github/actions/setup
+      - name: Setup toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+          components: clippy
+
+      - name: Setup sqlx-cli
+        uses: baptiste0928/cargo-install@v2
+        with:
+          crate: sqlx-cli
 
       - name: Testing
         run: cargo test --workspace --no-fail-fast
