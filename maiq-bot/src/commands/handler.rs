@@ -6,6 +6,7 @@ use crate::reply;
 use crate::Result;
 
 use teloxide::payloads::SendMessageSetters;
+use teloxide::requests::Requester;
 
 impl Commands for Handler {
   async fn start(self) -> Result<()> {
@@ -28,6 +29,8 @@ impl Commands for Handler {
       ]
       .into_iter()))
       .await?;
+
+    self.delete_message(self.message.chat.id, self.message.id).await?;
     Ok(())
   }
 
