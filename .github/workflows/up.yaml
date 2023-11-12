@@ -18,7 +18,7 @@ jobs:
       - name: Setup sqlx-cli
         uses: baptiste0928/cargo-install@v2
         with:
-          crate: railway
+          crate: railwayapp
 
       - name: Up
         run: railway up
