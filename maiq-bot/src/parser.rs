@@ -54,7 +54,7 @@ pub fn start_parser_service(
 
 async fn on_update(bot: Bot, pool: Arc<Pool>, snapshot: Snapshot, changes: Vec<String>) -> Result<()> {
   info!(target: "rx-parser", "snapshot: {} changes: {:?}", snapshot.id(), changes);
-  let users = User::all(&pool).await?;
+  let users = User::get_all_notified(&pool).await?;
   let snapshot = Arc::new(snapshot);
   let mut tasks = JoinSet::new();
   users

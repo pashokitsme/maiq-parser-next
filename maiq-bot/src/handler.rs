@@ -166,10 +166,10 @@ impl Caller for Handler {
 
   fn caller_name(&self) -> String {
     if let Some(user) = self.caller() {
-      format!("{} @{} <{}>", user.full_name(), user.username.as_deref().unwrap_or("<none>"), user.id.0)
+      format!("{} @{} ({})", user.full_name(), user.username.as_deref().unwrap_or("(none)"), user.id.0)
     } else {
       let chat = &self.message.chat;
-      format!("unknown user; chat {} <{}>", chat.title().unwrap_or("<none title>"), chat.id.0)
+      format!("unknown user; chat {} ({})", chat.title().unwrap_or("(none title)"), chat.id.0)
     }
   }
 }

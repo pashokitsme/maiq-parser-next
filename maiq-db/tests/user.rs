@@ -78,7 +78,7 @@ async fn get_all(#[future] pool: Pool) -> Result<()> {
   let mut user2 = User::get_by_id_or_create(1, &pool).await?;
   user2.config_mut().add_group("Ир3-21", &pool).await?;
 
-  let all = User::all(&pool).await?;
+  let all = User::get_all_notified(&pool).await?;
 
   all
     .into_iter()
@@ -96,12 +96,10 @@ async fn update(#[future] pool: Pool) -> Result<()> {
   user.config_mut().set_is_notifies_enabled(false);
   user.update(&pool).await?;
   assert!(!user.config().is_notifies_enabled());
-  assert!(
-    !User::get_by_id_or_create(0, &pool)
-      .await?
-      .config()
-      .is_notifies_enabled(),
-  );
+  assert!(!User::get_by_id_or_create(0, &pool)
+    .await?
+    .config()
+    .is_notifies_enabled(),);
 
   Ok(())
 }

@@ -8,6 +8,30 @@ use crate::Result;
 
 pub type UserEntry = (i64, Vec<String>);
 
+macro_rules! parse_user {
+  ($row: expr) => {{
+    let created_at = DateTime::from_naive($row.created_at);
+    let modified_at = DateTime::from_naive($row.modified_at);
+    User {
+      chat_id: $row.id,
+      cached_fullname: $row.cached_fullname,
+      config: Config {
+        is_notifies_enabled: $row.is_notifies_enabled,
+        is_broadcast_enabled: $row.is_broadcast_enabled,
+        target_groups: $row
+          .group_names
+          .unwrap_or_default()
+          .split(',')
+          .map(Into::into)
+          .collect::<Vec<String>>(),
+        chat_id: $row.id,
+      },
+      created_at,
+      modified_at,
+    }
+  }};
+}
+
 impl User {
   pub async fn insert(self, pool: &Pool<Db>) -> Result<Self> {
     info!(target: "db", "inserting new user id {}", self.chat_id);
@@ -20,36 +44,22 @@ impl User {
   pub async fn get_by_id_or_create<'c>(id: i64, pool: &Pool<Db>) -> Result<Self> {
     let row = sqlx::query_file!("sql/get_user_by_id.sql", id)
       .fetch_optional(pool)
-      .await
-      .unwrap();
+      .await?;
 
     let row = if let Some(row) = row { row } else { return User::insert(User::new(id), pool).await };
 
-    let created_at = DateTime::from_naive(row.created_at);
-    let modified_at = DateTime::from_naive(row.modified_at);
-
-    let user = User {
-      chat_id: row.id,
-      cached_fullname: row.cached_fullname,
-      config: Config {
-        is_notifies_enabled: row.is_notifies_enabled,
-        is_broadcast_enabled: row.is_broadcast_enabled,
-        target_groups: row
-          .group_names
-          .unwrap_or_default()
-          .split(',')
-          .map(Into::into)
-          .collect::<Vec<String>>(),
-        chat_id: row.id,
-      },
-      created_at,
-      modified_at,
-    };
+    let user = parse_user!(row);
 
     Ok(user)
   }
 
-  pub async fn all(pool: &Pool<Db>) -> Result<Vec<UserEntry>> {
+  pub async fn get_all(pool: &Pool<Db>) -> Result<Vec<User>> {
+    let rows = sqlx::query_file!("sql/get_users.sql").fetch_all(pool).await?;
+    let users = rows.into_iter().map(|r| parse_user!(r)).collect();
+    Ok(users)
+  }
+
+  pub async fn get_all_notified(pool: &Pool<Db>) -> Result<Vec<UserEntry>> {
     let entries = sqlx::query!(
       r#"
         select users.id as id, group_concat(group_name) as groups from users 

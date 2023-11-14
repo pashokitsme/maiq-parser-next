@@ -1,8 +1,10 @@
+use crate::callbacks::Callback;
 use crate::commands::*;
 use crate::handler::Handler;
 use crate::reply;
 use crate::Result;
 
+use maiq_db::models::User;
 use maiq_parser_next::parser::GROUP_NAMES;
 use teloxide::payloads::SendMessageSetters;
 use teloxide::requests::Requester;
@@ -72,7 +74,28 @@ impl Commands for Handler {
 }
 
 impl DeveloperCommands for Handler {
-  async fn test(self) -> Result<()> {
-    todo!()
+  async fn userlist(self) -> Result<()> {
+    let users = User::get_all(&self.pool).await?;
+    let mut reply = format!("Всего пользователей: <code>{}</code>\n\n", users.len());
+    users
+      .into_iter()
+      .map(|user| {
+        let enabled = if user.config().is_notifies_enabled() { "[+]" } else { "[-]" };
+        format!(
+          "{enabled} {username} <a href=\"tg://user?id={chat_id}\">link</a> \n created {created}; modified {modified}\n\n",
+          enabled = enabled,
+          chat_id = user.chat_id(),
+          username = user.cached_fullname().unwrap_or_default(),
+          created = user.created_at(),
+          modified = user.modified_at()
+        )
+      })
+      .for_each(|u| reply.push_str(&u));
+
+    self
+      .reply(reply)
+      .reply_markup(Callback::Close.with_text("Закрыть"))
+      .await?;
+    Ok(())
   }
 }

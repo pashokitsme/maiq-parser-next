@@ -66,6 +66,6 @@ cmds! {
     Version[desc: "Версия"] => version
   },
   dev: {
-    Test => test
+    UserList => userlist
   }
 }
