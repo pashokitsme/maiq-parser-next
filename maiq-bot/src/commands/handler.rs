@@ -5,13 +5,31 @@ use crate::markup;
 use crate::reply;
 use crate::Result;
 
+use maiq_parser_next::parser::GROUP_NAMES;
 use teloxide::payloads::SendMessageSetters;
 use teloxide::requests::Requester;
 
 impl Commands for Handler {
-  async fn start(self) -> Result<()> {
+  async fn start(mut self, group_indexes: String) -> Result<()> {
     let username = self.message.from().map(|u| u.full_name()).unwrap_or_default();
     self.reply(reply!("start.md", username = username)).await?;
+
+    let groups = group_indexes
+      .split(',')
+      .map(|s| s.parse().map(|idx: usize| GROUP_NAMES.get(idx)))
+      .filter_map(|s| s.ok().flatten().map(|s| s.to_string()))
+      .collect::<Vec<String>>();
+
+    if !groups.is_empty() {
+      for group in &groups {
+        self.user.config_mut().add_group(&group, &self.pool).await?;
+      }
+
+      self
+        .reply(reply!("start_add_group.md", groups = groups.join(", ")))
+        .await?;
+    }
+
     Ok(())
   }
 
