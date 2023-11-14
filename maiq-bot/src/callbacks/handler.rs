@@ -49,18 +49,27 @@ impl Callbacks for Handler {
     let me = self.get_me().await?;
     let mut link = String::new();
     for idx in self
-    .user
-    .config()
-    .groups()
-    .filter_map(|group| GROUP_NAMES.iter().position(|g| g == group))
+      .user
+      .config()
+      .groups()
+      .filter_map(|group| GROUP_NAMES.iter().position(|g| g == group))
     {
       link.push('g');
       link.push_str(&idx.to_string());
     }
-    
+
     let link = format!("https://t.me/{me}?start={link}", me = me.username.as_ref().unwrap(), link = link);
     self.answer().await?;
     self.reply(reply!("start_make_link.md", link = link)).await?;
+    Ok(())
+  }
+
+  async fn toggle_notifications(mut self) -> Result<()> {
+    let config = self.user.config_mut();
+    config.set_is_notifies_enabled(!config.is_notifies_enabled());
+    self.user.update(&self.pool).await?;
+    self.answer().await?;
+    self.show_config().await?;
     Ok(())
   }
 

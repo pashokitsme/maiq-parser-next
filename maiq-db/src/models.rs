@@ -49,10 +49,10 @@ impl User {
 pub struct Config {
   pub(crate) chat_id: i64,
 
-  #[getset(get_copy = "pub")]
+  #[getset(get_copy = "pub", set = "pub")]
   pub(crate) is_notifies_enabled: bool,
 
-  #[getset(get_copy = "pub")]
+  #[getset(get_copy = "pub", set = "pub")]
   pub(crate) is_broadcast_enabled: bool,
 
   pub(crate) target_groups: Vec<String>,

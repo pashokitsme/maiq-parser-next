@@ -87,3 +87,21 @@ async fn get_all(#[future] pool: Pool) -> Result<()> {
 
   Ok(())
 }
+
+#[rstest]
+#[tokio::test]
+async fn update(#[future] pool: Pool) -> Result<()> {
+  let pool = pool.await;
+  let mut user = User::get_by_id_or_create(0, &pool).await?;
+  user.config_mut().set_is_notifies_enabled(false);
+  user.update(&pool).await?;
+  assert!(!user.config().is_notifies_enabled());
+  assert!(
+    !User::get_by_id_or_create(0, &pool)
+      .await?
+      .config()
+      .is_notifies_enabled(),
+  );
+
+  Ok(())
+}

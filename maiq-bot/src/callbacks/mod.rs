@@ -84,5 +84,6 @@ callbacks! {
   ShowConfig => show_config,
   SetGroup(name: String) => set_group,
   GetStartLink => get_start_link,
+  ToggleNotifications => toggle_notifications,
   Close => close
 }

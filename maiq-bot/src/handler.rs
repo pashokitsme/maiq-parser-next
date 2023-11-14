@@ -136,8 +136,15 @@ impl Handler {
   }
 
   pub fn config_markup(&self) -> InlineKeyboardMarkup {
+    let toggle_text = if self.user.config().is_notifies_enabled() {
+      "Выключить уведомления"
+    } else {
+      "Включить уведомления"
+    };
+
     crate::markup!([
       [Callback::GetStartLink.with_text("Получить стартовую ссылку").into()],
+      [Callback::ToggleNotifications.with_text(toggle_text).into()],
       [Callback::SetMyGroups.with_text("Настроить группы").into()],
       [Callback::Close.with_text("Закрыть").into()]
     ])

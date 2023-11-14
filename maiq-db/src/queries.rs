@@ -69,9 +69,8 @@ impl User {
     Ok(entries)
   }
 
-  pub async fn update(self, pool: &Pool<Db>) -> Result<Self> {
+  pub async fn update(&self, pool: &Pool<Db>) -> Result<()> {
     info!(target: "db", "update user {}", self.chat_id);
-    let mut tx = pool.begin().await?;
 
     sqlx::query!(
       r#"update configs
@@ -84,10 +83,10 @@ impl User {
       self.config.is_notifies_enabled,
       self.config.is_broadcast_enabled
     )
-    .execute(&mut *tx)
+    .execute(pool)
     .await?;
 
-    Ok(self)
+    Ok(())
   }
 
   pub async fn update_username(&mut self, name: String, pool: &Pool<Db>) -> Result<()> {
