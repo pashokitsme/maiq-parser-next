@@ -1,10 +1,6 @@
 use std::env;
 
-// use maiq_db::pool;
 use maiq_parser_next::prelude::*;
-
-// use maiq_db::models::*;
-// use maiq_db::queries::*;
 
 use owo_colors::OwoColorize;
 
@@ -17,7 +13,7 @@ async fn main() {
     .build::<SnapshotParser4>()
     .unwrap();
 
-  parser.check(true).await;
+  _ = parser.check(true).await;
 
   let (snapshot, _) = rx.recv().await.unwrap().unwrap();
 

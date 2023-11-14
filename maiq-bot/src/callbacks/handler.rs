@@ -45,6 +45,25 @@ impl Callbacks for Handler {
     Ok(())
   }
 
+  async fn get_start_link(self) -> Result<()> {
+    let me = self.get_me().await?;
+    let mut link = String::new();
+    for idx in self
+    .user
+    .config()
+    .groups()
+    .filter_map(|group| GROUP_NAMES.iter().position(|g| g == group))
+    {
+      link.push('g');
+      link.push_str(&idx.to_string());
+    }
+    
+    let link = format!("https://t.me/{me}?start={link}", me = me.username.as_ref().unwrap(), link = link);
+    self.answer().await?;
+    self.reply(reply!("start_make_link.md", link = link)).await?;
+    Ok(())
+  }
+
   async fn set_group(mut self, name: String) -> Result<()> {
     match self.user.config().has_group(&name) {
       true => self.user.config_mut().remove_group(name, &self.pool).await?,
@@ -56,10 +75,7 @@ impl Callbacks for Handler {
   async fn show_config(self) -> Result<()> {
     self
       .edit(reply!(const "config.md"))
-      .reply_markup(markup!([
-        [Callback::SetMyGroups.with_text("Настроить группы").into()],
-        [Callback::Close.with_text("Закрыть").into()]
-      ]))
+      .reply_markup(self.config_markup())
       .await?;
     Ok(())
   }

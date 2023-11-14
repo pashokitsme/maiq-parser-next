@@ -58,12 +58,12 @@ macro_rules! cmds {
 
 cmds! {
   pub: {
-    Start[desc: "start"] => start,
-    Today[desc: "today"] => today,
-    Next[desc: "next"] => next,
-    About[desc: "about"] => about,
-    Config[desc: "config"] => show_config,
-    Version[desc: "version"] => version
+    Start[desc: "Стартовая команда", args: (group_indexes: String)] => start,
+    Today[desc: "Сегодня"] => today,
+    Next[desc: "Завтра"] => next,
+    About[desc: "Информация"] => about,
+    Config[desc: "Настройки"] => show_config,
+    Version[desc: "Версия"] => version
   },
   dev: {
     Test => test

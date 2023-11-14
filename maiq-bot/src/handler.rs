@@ -9,7 +9,9 @@ use teloxide::prelude::*;
 use maiq_db::Pool;
 use teloxide::payloads::SendMessage;
 use teloxide::requests::JsonRequest;
+use teloxide::types::InlineKeyboardMarkup;
 
+use crate::callbacks::Callback;
 use crate::format::*;
 use crate::reply;
 use crate::Caller;
@@ -131,6 +133,14 @@ impl Handler {
     } else {
       send
     }
+  }
+
+  pub fn config_markup(&self) -> InlineKeyboardMarkup {
+    crate::markup!([
+      [Callback::GetStartLink.with_text("Получить стартовую ссылку").into()],
+      [Callback::SetMyGroups.with_text("Настроить группы").into()],
+      [Callback::Close.with_text("Закрыть").into()]
+    ])
   }
 }
 
