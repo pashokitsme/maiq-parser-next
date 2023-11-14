@@ -83,5 +83,6 @@ callbacks! {
   SetMyGroups => show_my_groups,
   ShowConfig => show_config,
   SetGroup(name: String) => set_group,
+  GetStartLink => get_start_link,
   Close => close
 }

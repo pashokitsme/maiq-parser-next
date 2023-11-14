@@ -1,7 +1,5 @@
-use crate::callbacks::Callback;
 use crate::commands::*;
 use crate::handler::Handler;
-use crate::markup;
 use crate::reply;
 use crate::Result;
 
@@ -15,7 +13,7 @@ impl Commands for Handler {
     self.reply(reply!("start.md", username = username)).await?;
 
     let groups = group_indexes
-      .split(',')
+      .split('g')
       .map(|s| s.parse().map(|idx: usize| GROUP_NAMES.get(idx)))
       .filter_map(|s| s.ok().flatten().map(|s| s.to_string()))
       .collect::<Vec<String>>();
@@ -41,11 +39,7 @@ impl Commands for Handler {
   async fn show_config(self) -> Result<()> {
     self
       .reply(reply!(const "config.md"))
-      .reply_markup(markup!([
-        [Callback::SetMyGroups.with_text("Настроить группы").into()],
-        [Callback::Close.with_text("Закрыть").into()]
-      ]
-      .into_iter()))
+      .reply_markup(self.config_markup())
       .await?;
 
     self.delete_message(self.message.chat.id, self.message.id).await?;
