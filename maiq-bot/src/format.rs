@@ -85,6 +85,12 @@ impl<'a> Display for FormatDate<'a> {
 const EMOJIES: [&str; 21] =
   ["🥭", "🥩", "🥝", "🌵", "🥞", "🧀", "🍖", "🍌", "🍍", "🥓", "🧃", "🍒", "🍓", "🍇", "🥕", "🐷", "🍺", "🍪", "🍁", "🍉", "🍋"];
 
+const GREETINGS: [&str; 2] = ["Привет", "Хай"];
+
+pub fn random_greeting<'a>() -> &'a str {
+  GREETINGS[fastrand::usize(0..GREETINGS.len())]
+}
+
 fn random_emoji<'a>() -> &'a str {
   EMOJIES[fastrand::usize(0..EMOJIES.len())]
 }

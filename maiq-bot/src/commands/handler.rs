@@ -1,5 +1,6 @@
 use crate::callbacks::Callback;
 use crate::commands::*;
+use crate::format::random_greeting;
 use crate::handler::Handler;
 use crate::reply;
 use crate::Result;
@@ -12,7 +13,9 @@ use teloxide::requests::Requester;
 impl Commands for Handler {
   async fn start(mut self, group_indexes: String) -> Result<()> {
     let username = self.message.from().map(|u| u.full_name()).unwrap_or_default();
-    self.reply(reply!("start.md", username = username)).await?;
+    self
+      .reply(reply!("start.md", greeting = random_greeting(), username = username))
+      .await?;
 
     let groups = group_indexes
       .split('g')
@@ -30,6 +33,7 @@ impl Commands for Handler {
         .await?;
     }
 
+    self.about().await?;
     Ok(())
   }
 

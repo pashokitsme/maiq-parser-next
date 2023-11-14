@@ -22,6 +22,7 @@ macro_rules! parse_user {
           .group_names
           .unwrap_or_default()
           .split(',')
+          .filter(|s| !s.is_empty())
           .map(Into::into)
           .collect::<Vec<String>>(),
         chat_id: $row.id,
