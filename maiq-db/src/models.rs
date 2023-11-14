@@ -1,5 +1,3 @@
-use std::slice::Iter;
-
 use crate::utils::*;
 use getset::*;
 
@@ -59,11 +57,11 @@ pub struct Config {
 }
 
 impl Config {
-  pub fn groups(&self) -> Iter<String> {
-    self.target_groups.iter()
+  pub fn groups(&self) -> &[String] {
+    &self.target_groups
   }
 
   pub fn has_group<S: AsRef<str>>(&self, name: S) -> bool {
-    self.groups().any(|g| g == name.as_ref())
+    self.groups().iter().any(|g| g == name.as_ref())
   }
 }

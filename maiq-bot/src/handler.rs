@@ -81,7 +81,7 @@ impl Handler {
         self.reply(reply!("err/group_not_set.md")).await?;
       }
       1 => {
-        let group_name = self.user.config().groups().next().unwrap();
+        let group_name = self.user.config().groups().first().unwrap();
         let format = FormatSnapshot::select_group(snapshot, group_name)
           .map(|s| s.to_string())
           .unwrap_or_else(|| reply!("err/no_timetable_exact.md", group_name = group_name));
@@ -92,6 +92,7 @@ impl Handler {
           .user
           .config()
           .groups()
+          .iter()
           .filter_map(|group| FormatSnapshot::select_group(snapshot, group));
 
         if groups.clone().count() == 0 {

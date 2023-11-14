@@ -52,6 +52,7 @@ impl Callbacks for Handler {
       .user
       .config()
       .groups()
+      .iter()
       .filter_map(|group| GROUP_NAMES.iter().position(|g| g == group))
     {
       link.push('g');

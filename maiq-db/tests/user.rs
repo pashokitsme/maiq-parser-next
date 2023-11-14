@@ -43,6 +43,7 @@ async fn add_group(#[future] pool: Pool) -> Result<()> {
   user
     .config()
     .groups()
+    .iter()
     .zip(["Ир3-21", "Ир1-21"])
     .for_each(|(g, e)| assert_eq!(g, e));
   Ok(())
@@ -63,6 +64,7 @@ async fn remove_group(#[future] pool: Pool) -> Result<()> {
   user
     .config()
     .groups()
+    .iter()
     .zip(["Ир3-21"])
     .for_each(|(g, e)| assert_eq!(g, e));
   Ok(())

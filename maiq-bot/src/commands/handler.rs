@@ -82,12 +82,13 @@ impl DeveloperCommands for Handler {
       .map(|user| {
         let enabled = if user.config().is_notifies_enabled() { "[+]" } else { "[-]" };
         format!(
-          "{enabled} {username} <a href=\"tg://user?id={chat_id}\">link</a> \n created {created}; modified {modified}\n\n",
+          "{enabled} {username} (chat {chat_id}) <a href=\"tg://user?id={chat_id}\">link</a> \n created {created}; modified {modified}\n{groups}\n",
           enabled = enabled,
           chat_id = user.chat_id(),
           username = user.cached_fullname().unwrap_or_default(),
           created = user.created_at(),
-          modified = user.modified_at()
+          modified = user.modified_at(),
+          groups = user.config().groups().join(", ")
         )
       })
       .for_each(|u| reply.push_str(&u));
