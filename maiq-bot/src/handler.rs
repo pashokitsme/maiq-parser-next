@@ -35,9 +35,15 @@ impl Handler {
     match User::get_by_id_or_create(message.chat.id.0, &pool).await {
       Ok(user) => {
         let mut handler = Self { bot, message, parser, user, pool, caller, callback_id: None };
+        let name = if handler.message.chat.is_private() {
+          handler.caller_name()
+        } else {
+          handler.message.chat.title().unwrap_or("(none)").into()
+        };
+
         handler
           .user
-          .update_username(handler.caller_name(), &handler.pool)
+          .update_username(name, &handler.pool)
           .await
           .ok()
           .map(move |_| handler)
@@ -61,9 +67,14 @@ impl Handler {
     match User::get_by_id_or_create(message.chat.id.0, &pool).await {
       Ok(user) => {
         let mut handler = Self { bot, message, parser, user, caller: Some(query.from), pool, callback_id: Some(query.id) };
+        let name = if handler.message.chat.is_private() {
+          handler.caller_name()
+        } else {
+          handler.message.chat.title().unwrap_or("(none)").into()
+        };
         handler
           .user
-          .update_username(handler.caller_name(), &handler.pool)
+          .update_username(name, &handler.pool)
           .await
           .ok()
           .map(move |_| handler)
