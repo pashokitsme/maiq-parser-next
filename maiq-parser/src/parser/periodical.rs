@@ -95,6 +95,7 @@ impl<P: Parser + Send + Sync + 'static> LoopedSnapshotParser<P> {
     loop {
       self.interval.tick().await;
       if !self.time_bounds.contains(&DateTime::now().time().hour()) {
+        ready = false;
         continue;
       }
 
@@ -109,6 +110,7 @@ impl<P: Parser + Send + Sync + 'static> LoopedSnapshotParser<P> {
       if let Ok(next) = next {
         parser.prev_next_snapshot = next;
       }
+
       ready = true;
     }
   }
