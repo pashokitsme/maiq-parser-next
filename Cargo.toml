@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["maiq-cli", "maiq-parser", "maiq-db"]
+members = ["maiq-bot", "maiq-cli", "maiq-parser", "maiq-db"]
 
 [workspace.package]
 license = "MPL-2.0"
