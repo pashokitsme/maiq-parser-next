@@ -8,3 +8,5 @@ create table target_groups(
   group_name_ref int not null,
   constraint fk_group_name_ref foreign key(group_name_ref) references groups(id)
 );
+create unique index ux_groups_group_name on groups(group_name);
+create unique index ux_target_groups_pair on target_groups(user_ref, group_name_ref);

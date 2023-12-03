@@ -1,31 +1,31 @@
 pub mod error;
 pub mod models;
 pub mod queries;
+pub mod schema;
 mod utils;
 
-use error::Error;
+use diesel::r2d2;
+use diesel_migrations::EmbeddedMigrations;
+use diesel_migrations::MigrationHarness;
 use log::*;
-use sqlx::migrate::MigrateDatabase;
 
-pub type Pool = sqlx::SqlitePool;
-pub type Result<T> = std::result::Result<T, Error>;
+use diesel::migration::Migration;
+use diesel::prelude::*;
 
-type PoolOptions = sqlx::sqlite::SqlitePoolOptions;
-type Db = sqlx::Sqlite;
+pub type Pool = r2d2::Pool<r2d2::ConnectionManager<SqliteConnection>>;
+pub type Result<T> = std::result::Result<T, crate::error::Error>;
 
-pub async fn pool() -> Result<Pool> {
-  info!(target: "db", "init sqlite database");
-  let url = std::env::var("SQLITE_PATH").expect("SQLITE_PATH");
-  validate(&url).await?;
-  let pool = PoolOptions::new().max_connections(4).connect(&url).await?;
-  sqlx::migrate!().run(&pool).await?;
-  Ok(pool)
-}
+const MIGRATIONS: EmbeddedMigrations = diesel_migrations::embed_migrations!();
 
-async fn validate(url: &str) -> Result<()> {
-  if !Db::database_exists(url).await? {
-    warn!(target: "db", "database not exists at {}; creating", url);
-    Db::create_database(url).await?;
+pub fn pool(connection_url: &str) -> Result<Pool> {
+  let manager = r2d2::ConnectionManager::new(connection_url);
+  let pool = Pool::builder().test_on_check_out(false).max_size(3).build(manager)?;
+
+  let mut conn = pool.get()?;
+  let pending_migrations = conn.pending_migrations(MIGRATIONS)?;
+  if !pending_migrations.is_empty() {
+    info!(target: "db", "run pending migrations: {}", pending_migrations.iter().map(|m| m.name().to_string()).collect::<String>());
+    conn.run_pending_migrations(MIGRATIONS)?;
   }
-  Ok(())
+  Ok(pool)
 }
