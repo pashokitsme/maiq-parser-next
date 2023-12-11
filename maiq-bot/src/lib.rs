@@ -7,6 +7,7 @@ mod handler;
 mod parser;
 
 use std::sync::Arc;
+use teloxide::utils::command::BotCommands;
 use tokio::sync::RwLock;
 
 use maiq_parser_next::prelude::*;
@@ -14,42 +15,29 @@ use parser::start_parser_service;
 use teloxide::dptree::deps;
 use teloxide::prelude::*;
 
-use callbacks::*;
-use commands::*;
-
 use dptree as dp;
 use teloxide::dispatching::UpdateHandler;
-use teloxide::utils::command::BotCommands;
 
 use handler::Handler;
+
+#[macro_use]
+mod macros;
 
 #[macro_use]
 extern crate log;
 
 pub use error::Error;
 
+use crate::callbacks::filter_callback;
+use crate::callbacks::Callback;
+use crate::commands::Command;
+use crate::commands::DeveloperCommand;
+
 pub type Result<T> = std::result::Result<T, Error>;
 pub type SnapshotParserImpl = SnapshotParser4;
 pub type SnapshotParser = Arc<RwLock<maiq_parser_next::prelude::SnapshotParser<SnapshotParserImpl>>>;
 
 pub const DEVELOPER_ID: u64 = 949248728;
-
-#[macro_export]
-macro_rules! reply {
-  ($path: literal$(, $($args:tt)+)?) => {
-    format!($crate::reply!(const $path)$(, $($args)+)?)
-  };
-  (const $path: literal) => {
-    include_str!(concat!(env!("OUT_DIR"), "/replies/", $path))
-  }
-}
-
-#[macro_export]
-macro_rules! markup {
-  ($e: expr) => {
-    teloxide::types::InlineKeyboardMarkup::new($e)
-  };
-}
 
 pub trait Caller {
   fn caller(&self) -> Option<&teloxide::types::User>;

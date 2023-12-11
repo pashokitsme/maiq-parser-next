@@ -1,15 +1,27 @@
 use maiq_parser_next::parser::GROUP_NAMES;
 use teloxide::payloads::EditMessageTextSetters;
 use teloxide::requests::Requester;
+use teloxide::types::CallbackQuery;
+use teloxide::types::InlineKeyboardButton;
 use teloxide::types::InlineKeyboardMarkup;
+use teloxide::types::ReplyMarkup;
 
-use crate::callbacks::Callback;
 use crate::handler::Handler;
+use crate::make_callbacks;
 use crate::markup;
 use crate::reply;
 use crate::Result;
 
-use super::Callbacks;
+
+make_callbacks! {
+  Test(arg: i32) => test,
+  SetMyGroups => show_my_groups,
+  ShowConfig => show_config,
+  SetGroup(name: String) => set_group,
+  GetStartLink => get_start_link,
+  ToggleNotifications => toggle_notifications,
+  Close => close
+}
 
 impl Handler {
   fn get_my_groups(&self) -> InlineKeyboardMarkup {
