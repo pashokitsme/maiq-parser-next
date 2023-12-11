@@ -1,8 +1,7 @@
+use maiq_parser_next::parser::GROUP_NAMES;
 use teloxide::payloads::EditMessageTextSetters;
 use teloxide::requests::Requester;
 use teloxide::types::InlineKeyboardMarkup;
-
-use maiq_parser_next::prelude::*;
 
 use crate::callbacks::Callback;
 use crate::handler::Handler;

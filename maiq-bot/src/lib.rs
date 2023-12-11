@@ -67,17 +67,17 @@ pub async fn setup_bot() -> Result<Bot> {
   Ok(bot)
 }
 
-pub fn setup_parser() -> Result<ParserPair<SnapshotParserImpl>> {
-  let parser = parser_builder()
+pub fn setup_parser() -> Result<SnapshotParser> {
+  let parser = SnapshotParserBuilder::new()
     .with_today_url("https://rsp.chemk.org/4korp/today.htm")
     .unwrap()
     .with_next_url("https://rsp.chemk.org/4korp/tomorrow.htm")
     .unwrap()
     .build()?;
-  Ok(parser)
+  Ok(Arc::from(RwLock::from(parser)))
 }
 
-pub async fn start(bot: Bot, pool: maiq_db::Pool, parser: ParserPair<SnapshotParserImpl>) {
+pub async fn start(bot: Bot, pool: maiq_db::Pool, parser: SnapshotParser) {
   let pool = Arc::new(pool);
   let parser = start_parser_service(bot.clone(), parser, pool.clone());
 

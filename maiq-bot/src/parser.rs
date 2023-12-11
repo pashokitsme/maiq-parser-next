@@ -1,29 +1,37 @@
 use std::sync::Arc;
 use std::time::Duration;
 
-use tokio::sync::RwLock;
-
 use teloxide::prelude::*;
 use tokio::task::JoinSet;
 
 use crate::format::FormatSnapshot;
 use crate::reply;
 use crate::Result;
-use crate::SnapshotParserImpl;
+use crate::SnapshotParser;
 
 use maiq_db::models::User;
 use maiq_db::Pool;
-use maiq_parser_next::parser::LoopedSnapshotParser;
 use maiq_parser_next::prelude::*;
 
-pub fn start_parser_service(
-  bot: Bot,
-  parser: ParserPair<SnapshotParserImpl>,
-  pool: Arc<Pool>,
-) -> Arc<RwLock<SnapshotParser<SnapshotParserImpl>>> {
-  let mut rx = parser.1;
-  let parser = Arc::new(RwLock::new(parser.0));
+macro_rules! run_shapshot_handler {
+  ($e: expr, $bot: expr, $pool: expr) => {
+    let res = match $e {
+      Ok(Some((snapshot, changes))) if !changes.is_empty() => on_update($bot.clone(), $pool.clone(), snapshot, changes).await,
+      Ok(Some(_)) => Ok(()),
+      Ok(None) => {
+        warn!("snapshot is None; is url set?");
+        Ok(())
+      },
+      Err(err) => on_error(err),
+    };
 
+    if let Err(err) = res {
+      error!(target: "rx-parser", "error during handling update: {:?}", err);
+    }
+  };
+}
+
+pub fn start_parser_service(bot: Bot, parser: SnapshotParser, pool: Arc<Pool>) -> SnapshotParser {
   let delay_secs = std::env::var("DELAY")
     .ok()
     .and_then(|v| v.parse().ok())
@@ -32,21 +40,20 @@ pub fn start_parser_service(
       300
     });
 
-  let parser_looped = LoopedSnapshotParser::with_interval(parser.clone(), Duration::from_secs(delay_secs));
-  tokio::spawn(async move { parser_looped.start().await });
-  tokio::spawn(async move {
-    while let Some(update) = rx.recv().await {
-      let res = match update {
-        Ok((snapshot, changes)) if !changes.is_empty() => on_update(bot.clone(), pool.clone(), snapshot, changes).await,
-        Err(err) => on_error(&bot, err).await,
-        _ => Ok(()),
-      };
+  let parser_clone = parser.clone();
 
-      if let Err(err) = res {
-        error!(target: "rx-parser", "error during handling update: {:?}", err);
-      }
-    }
-    warn!(target: "parser", "parsing is stopped");
+  tokio::spawn(async move {
+    let repeating = RepeatingSnapshotParser::with_interval(parser_clone, Duration::from_secs(delay_secs)).with_update_handler(
+      Box::new(move |today, next| {
+        let bot = bot.clone();
+        let pool = pool.clone();
+        tokio::spawn(async move {
+          run_shapshot_handler!(today, bot, pool);
+          run_shapshot_handler!(next, bot, pool);
+        });
+      }),
+    );
+    repeating.start().await
   });
 
   parser
@@ -85,7 +92,7 @@ async fn on_update(bot: Bot, pool: Arc<Pool>, snapshot: Snapshot, changes: Vec<S
   Ok(())
 }
 
-async fn on_error(_bot: &Bot, err: maiq_parser_next::error::Error) -> Result<()> {
+fn on_error(err: maiq_parser_next::error::Error) -> Result<()> {
   if !err.can_be_skipped() {
     warn!(target: "rx-parser", "error during parsing: {:?}", err);
   }
