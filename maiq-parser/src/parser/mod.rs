@@ -1,11 +1,11 @@
 pub mod default_lectures;
-pub mod impl_buildings;
+pub mod r#impl;
 pub mod table;
 
 mod parse_date;
 mod periodical;
 
-pub use impl_buildings::*;
+pub use r#impl::*;
 pub use periodical::*;
 
 pub const GROUP_NAMES: [&str; 34] = [
