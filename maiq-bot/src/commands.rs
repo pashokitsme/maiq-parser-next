@@ -1,7 +1,7 @@
 use crate::callbacks::Callback;
-use crate::commands::*;
 use crate::format::random_greeting;
 use crate::handler::Handler;
+use crate::make_commands;
 use crate::reply;
 use crate::Result;
 
@@ -9,6 +9,20 @@ use maiq_db::models::User;
 use maiq_parser_next::parser::GROUP_NAMES;
 use teloxide::payloads::SendMessageSetters;
 use teloxide::requests::Requester;
+
+make_commands! {
+  pub: {
+    Start[desc: "Стартовая команда", args: (group_indexes: String)] => start,
+    Today[desc: "Сегодня"] => today,
+    Next[desc: "Завтра"] => next,
+    About[desc: "Информация"] => about,
+    Config[desc: "Настройки"] => show_config,
+    Version[desc: "Версия"] => version
+  },
+  dev: {
+    UserList => userlist
+  }
+}
 
 impl Commands for Handler {
   async fn start(mut self, group_indexes: String) -> Result<()> {
