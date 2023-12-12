@@ -126,7 +126,11 @@ impl<P: SnapshotParserAgent + Send + Sync + 'static> SnapshotParser<P> {
   }
 
   async fn parse_exact(&self, url: Url, prev: Option<&Snapshot>) -> Result<(Snapshot, Changes), Error> {
-    let table = self.fetch_table(url).await?.ok_or(Error::NoHtmlTable)?;
+    let table = self
+      .fetch_table(url)
+      .await
+      .map_err(Box::from)?
+      .ok_or(Error::NoHtmlTable)?;
     let parser = P::new(DateTime::now())
       .with_groups(GROUP_NAMES.iter())
       .with_default_lectures(self.default_lectures.clone());

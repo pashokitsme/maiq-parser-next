@@ -15,13 +15,15 @@ macro_rules! markup {
   };
 }
 
-
 #[macro_export]
 macro_rules! make_commands {
   {
     pub: { $($name: ident[desc: $desc: literal $(, args: ($($arg:ident: $tt:ty),*) )?] => $fn_name: ident),* },
     dev: { $($dev_name: ident$([args: ($($dev_arg:ident: $dev_tt:ty),*)])? => $dev_fn_name: ident),* }
   } => {
+    use std::sync::Arc;
+    use tokio::sync::Mutex;
+
     use teloxide::utils::command::BotCommands;
     use $crate::Caller;
 
@@ -41,30 +43,32 @@ macro_rules! make_commands {
     }
 
     pub trait Commands {
-      $(async fn $fn_name(self, $($($arg: $tt),*)?) -> Result<()>;)*
+      async fn finalize(&self, result: Result<()>) -> Result<()>;
+      $(async fn $fn_name(&self, $($($arg: $tt),*)?) -> Result<()>;)*
     }
 
     pub trait DeveloperCommands {
-      $(async fn $dev_fn_name(self, $($($dev_arg: $dev_tt),*)?) -> Result<()>;)*
+      async fn finalize(&self, result: Result<()>) -> Result<()>;
+      $(async fn $dev_fn_name(&self, $($($dev_arg: $dev_tt),*)?) -> Result<()>;)*
     }
 
     impl Command {
-      pub async fn execute<C: Commands + Caller>(self, executor: C) -> Result<()> {
+      pub async fn execute<C: Commands + Caller>(self, executor: Arc<Mutex<C>>) -> Result<()> {
+        let executor = executor.lock().await;
         info!(target: "command", "executing: {:?}; caller: {}", self, executor.caller_name());
-        match self {
-          $(Command::$name$(($($arg),*))? => executor.$fn_name($($($arg),*)?).await?),*
-        }
-        Ok(())
+        executor.finalize(match self {
+          $(Command::$name$(($($arg),*))? => executor.$fn_name($($($arg),*)?).await),*
+        }).await
       }
     }
 
     impl DeveloperCommand {
-      pub async fn execute<D: DeveloperCommands + Caller>(self, executor: D) -> Result<()> {
+      pub async fn execute<D: DeveloperCommands + Caller>(self, executor: Arc<Mutex<D>>) -> Result<()> {
+        let executor = executor.lock().await;
         info!(target: "dev-command", "executing: {:?}; caller: {}", self, executor.caller_name());
-        match self {
-          $(DeveloperCommand::$dev_name$(($($dev_arg),*))? => executor.$dev_fn_name($($($dev_arg),*)?).await?),*
-        }
-        Ok(())
+        executor.finalize(match self {
+          $(DeveloperCommand::$dev_name$(($($dev_arg),*))? => executor.$dev_fn_name($($($dev_arg),*)?).await),*
+        }).await
       }
     }
 
@@ -74,9 +78,13 @@ macro_rules! make_commands {
 #[macro_export]
 macro_rules! make_callbacks {
   {$($name: ident$(($($arg_name: ident: $tt: ty),*))? => $fn_name: ident),*} => {
+    use std::sync::Arc;
+    use tokio::sync::Mutex;
+
     use $crate::Caller;
     use serde::Serialize;
     use serde::Deserialize;
+
 
     #[derive(Serialize, Deserialize, Clone, Debug)]
     pub enum Callback {
@@ -84,16 +92,17 @@ macro_rules! make_callbacks {
     }
 
     pub trait Callbacks {
-      $(async fn $fn_name(self, $($($arg_name: $tt),*)?) -> Result<()>;)*
+      async fn finalize(&self, result: Result<()>) -> Result<()>;
+      $(async fn $fn_name(&self, $($($arg_name: $tt),*)?) -> Result<()>;)*
     }
 
     impl Callback {
-      pub async fn execute<C: Callbacks + Caller>(self, executor: C) -> Result<()> {
+      pub async fn execute<C: Callbacks + Caller>(self, executor: Arc<Mutex<C>>) -> Result<()> {
+        let executor = executor.lock().await;
         info!(target: "callback", "executing: {:?}; caller: {}", self, executor.caller_name());
-        match self {
-          $(Callback::$name$({$($arg_name),*})? => executor.$fn_name($($($arg_name)*,)?).await?),*
-        };
-        Ok(())
+        executor.finalize(match self {
+          $(Callback::$name$({$($arg_name),*})? => executor.$fn_name($($($arg_name)*,)?).await),*
+        }).await
       }
     }
 
