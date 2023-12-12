@@ -110,4 +110,8 @@ impl Callbacks for Handler {
     self.delete_message(self.message.chat.id, self.message.id).await?;
     Ok(())
   }
+
+  async fn finalize(&self, result: Result<()>) -> Result<()> {
+    self.default_finalize(result).await
+  }
 }

@@ -180,6 +180,15 @@ impl Handler {
   pub async fn user(&self) -> MutexGuard<User> {
     self.user.lock().await
   }
+
+  pub async fn default_finalize(&self, result: Result<()>) -> Result<()> {
+    let Err(err) = result else { return Ok(()) };
+    _ = self
+      .reply(format!("Ошибка 🧐\n\n{}", err))
+      .reply_markup(Callback::Close.with_text("Закрыть"))
+      .await;
+    Err(err)
+  }
 }
 
 impl Deref for Handler {

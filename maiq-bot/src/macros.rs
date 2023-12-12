@@ -43,10 +43,12 @@ macro_rules! make_commands {
     }
 
     pub trait Commands {
+      async fn finalize(&self, result: Result<()>) -> Result<()>;
       $(async fn $fn_name(&self, $($($arg: $tt),*)?) -> Result<()>;)*
     }
 
     pub trait DeveloperCommands {
+      async fn finalize(&self, result: Result<()>) -> Result<()>;
       $(async fn $dev_fn_name(&self, $($($dev_arg: $dev_tt),*)?) -> Result<()>;)*
     }
 
@@ -54,10 +56,9 @@ macro_rules! make_commands {
       pub async fn execute<C: Commands + Caller>(self, executor: Arc<Mutex<C>>) -> Result<()> {
         let executor = executor.lock().await;
         info!(target: "command", "executing: {:?}; caller: {}", self, executor.caller_name());
-        match self {
-          $(Command::$name$(($($arg),*))? => executor.$fn_name($($($arg),*)?).await?),*
-        }
-        Ok(())
+        executor.finalize(match self {
+          $(Command::$name$(($($arg),*))? => executor.$fn_name($($($arg),*)?).await),*
+        }).await
       }
     }
 
@@ -65,10 +66,9 @@ macro_rules! make_commands {
       pub async fn execute<D: DeveloperCommands + Caller>(self, executor: Arc<Mutex<D>>) -> Result<()> {
         let executor = executor.lock().await;
         info!(target: "dev-command", "executing: {:?}; caller: {}", self, executor.caller_name());
-        match self {
-          $(DeveloperCommand::$dev_name$(($($dev_arg),*))? => executor.$dev_fn_name($($($dev_arg),*)?).await?),*
-        }
-        Ok(())
+        executor.finalize(match self {
+          $(DeveloperCommand::$dev_name$(($($dev_arg),*))? => executor.$dev_fn_name($($($dev_arg),*)?).await),*
+        }).await
       }
     }
 
@@ -92,6 +92,7 @@ macro_rules! make_callbacks {
     }
 
     pub trait Callbacks {
+      async fn finalize(&self, result: Result<()>) -> Result<()>;
       $(async fn $fn_name(&self, $($($arg_name: $tt),*)?) -> Result<()>;)*
     }
 
@@ -99,11 +100,9 @@ macro_rules! make_callbacks {
       pub async fn execute<C: Callbacks + Caller>(self, executor: Arc<Mutex<C>>) -> Result<()> {
         let executor = executor.lock().await;
         info!(target: "callback", "executing: {:?}; caller: {}", self, executor.caller_name());
-        match self {
-          $(Callback::$name$({$($arg_name),*})? => executor.$fn_name($($($arg_name)*,)?).await?),*
-        };
-
-        Ok(())
+        executor.finalize(match self {
+          $(Callback::$name$({$($arg_name),*})? => executor.$fn_name($($($arg_name)*,)?).await),*
+        }).await
       }
     }
 

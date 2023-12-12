@@ -21,7 +21,8 @@ make_commands! {
     Version[desc: "Версия"] => version
   },
   dev: {
-    UserList => userlist
+    UserList => userlist,
+    TestErr => test_err
   }
 }
 
@@ -91,6 +92,10 @@ impl Commands for Handler {
     self.reply(crate::build_info::build_info()).await?;
     Ok(())
   }
+
+  async fn finalize(&self, result: Result<()>) -> Result<()> {
+    self.default_finalize(result).await
+  }
 }
 
 impl DeveloperCommands for Handler {
@@ -118,5 +123,13 @@ impl DeveloperCommands for Handler {
       .reply_markup(Callback::Close.with_text("Закрыть"))
       .await?;
     Ok(())
+  }
+
+  async fn test_err(&self) -> Result<()> {
+    Err(anyhow::anyhow!("Test error"))
+  }
+
+  async fn finalize(&self, result: Result<()>) -> Result<()> {
+    self.default_finalize(result).await
   }
 }
