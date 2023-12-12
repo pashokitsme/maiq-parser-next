@@ -12,6 +12,8 @@ use teloxide::requests::JsonRequest;
 use teloxide::types::InlineKeyboardMarkup;
 
 use anyhow::Result;
+use tokio::sync::Mutex;
+use tokio::sync::MutexGuard;
 
 use crate::callbacks::Callback;
 use crate::format::*;
@@ -22,8 +24,8 @@ use crate::SnapshotParser;
 #[derive(Clone)]
 pub struct Handler {
   pub bot: Bot,
-  pub user: User,
-  pub message: Message,
+  pub user: Arc<Mutex<User>>,
+  pub message: Arc<Message>,
   pub parser: SnapshotParser,
   pub pool: Arc<Pool>,
   caller: Option<teloxide::types::User>,
@@ -31,23 +33,23 @@ pub struct Handler {
 }
 
 impl Handler {
-  pub async fn with_message(bot: Bot, message: Message, parser: SnapshotParser, pool: Arc<Pool>) -> Option<Self> {
+  pub async fn with_message(bot: Bot, message: Message, parser: SnapshotParser, pool: Arc<Pool>) -> Option<Arc<Mutex<Self>>> {
     let caller = message.from().cloned();
     match User::get_by_id_or_create(message.chat.id.0, &pool).await {
       Ok(user) => {
-        let mut handler = Self { bot, message, parser, user, pool, caller, callback_id: None };
+        let handler =
+          Self { bot, message: Arc::new(message), parser, user: Arc::new(Mutex::new(user)), pool, caller, callback_id: None };
         let name = if handler.message.chat.is_private() {
           handler.caller_name()
         } else {
           handler.message.chat.title().unwrap_or("(none)").into()
         };
 
-        handler
-          .user
-          .update_username(name, &handler.pool)
-          .await
-          .ok()
-          .map(move |_| handler)
+        {
+          let mut user = handler.user.lock().await;
+          user.update_username(name, &handler.pool).await.ok()
+        }
+        .map(move |_| Arc::new(Mutex::new(handler)))
       }
       Err(err) => {
         error!(target: "commands", "can't query user model id {}; error: {:?}", message.chat.id.0, err);
@@ -56,7 +58,12 @@ impl Handler {
     }
   }
 
-  pub async fn with_callback(bot: Bot, query: CallbackQuery, parser: SnapshotParser, pool: Arc<Pool>) -> Option<Self> {
+  pub async fn with_callback(
+    bot: Bot,
+    query: CallbackQuery,
+    parser: SnapshotParser,
+    pool: Arc<Pool>,
+  ) -> Option<Arc<Mutex<Self>>> {
     let message = match query.message {
       Some(msg) => msg,
       None => {
@@ -67,18 +74,25 @@ impl Handler {
 
     match User::get_by_id_or_create(message.chat.id.0, &pool).await {
       Ok(user) => {
-        let mut handler = Self { bot, message, parser, user, caller: Some(query.from), pool, callback_id: Some(query.id) };
+        let handler = Self {
+          bot,
+          message: Arc::new(message),
+          parser,
+          user: Arc::new(Mutex::new(user)),
+          caller: Some(query.from),
+          pool,
+          callback_id: Some(query.id),
+        };
         let name = if handler.message.chat.is_private() {
           handler.caller_name()
         } else {
           handler.message.chat.title().unwrap_or("(none)").into()
         };
-        handler
-          .user
-          .update_username(name, &handler.pool)
-          .await
-          .ok()
-          .map(move |_| handler)
+        {
+          let mut user = handler.user.lock().await;
+          user.update_username(name, &handler.pool).await.ok()
+        }
+        .map(move |_| Arc::from(Mutex::new(handler)))
       }
       Err(err) => {
         error!(target: "commands", "can't query user model id {}; error: {:?}", query.from.id.0 as i64, err);
@@ -88,20 +102,20 @@ impl Handler {
   }
 
   pub async fn reply_snapshot(&self, snapshot: &Snapshot) -> Result<()> {
-    match self.user.config().groups().len() {
+    let user = self.user().await;
+    match user.config().groups().len() {
       0 => {
         self.reply(reply!("err/group_not_set.md")).await?;
       }
       1 => {
-        let group_name = self.user.config().groups().first().unwrap();
+        let group_name = user.config().groups().first().unwrap();
         let format = FormatSnapshot::select_group(snapshot, group_name)
           .map(|s| s.to_string())
           .unwrap_or_else(|| reply!("err/no_timetable_exact.md", group_name = group_name));
         self.reply(format).await?;
       }
       _ => {
-        let groups = self
-          .user
+        let groups = user
           .config()
           .groups()
           .iter()
@@ -148,8 +162,8 @@ impl Handler {
     }
   }
 
-  pub fn config_markup(&self) -> InlineKeyboardMarkup {
-    let toggle_text = if self.user.config().is_notifies_enabled() {
+  pub async fn config_markup(&self) -> InlineKeyboardMarkup {
+    let toggle_text = if self.user().await.config().is_notifies_enabled() {
       "Выключить уведомления"
     } else {
       "Включить уведомления"
@@ -161,6 +175,10 @@ impl Handler {
       [Callback::SetMyGroups.with_text("Настроить группы").into()],
       [Callback::Close.with_text("Закрыть").into()]
     ])
+  }
+
+  pub async fn user(&self) -> MutexGuard<User> {
+    self.user.lock().await
   }
 }
 

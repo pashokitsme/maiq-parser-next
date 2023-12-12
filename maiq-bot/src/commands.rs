@@ -26,7 +26,7 @@ make_commands! {
 }
 
 impl Commands for Handler {
-  async fn start(mut self, group_indexes: String) -> Result<()> {
+  async fn start(&self, group_indexes: String) -> Result<()> {
     let username = self.message.from().map(|u| u.full_name()).unwrap_or_default();
     self
       .reply(reply!("start.md", greeting = random_greeting(), username = username))
@@ -39,8 +39,9 @@ impl Commands for Handler {
       .collect::<Vec<String>>();
 
     if !groups.is_empty() {
+      let mut user = self.user().await;
       for group in &groups {
-        self.user.config_mut().add_group(&group, &self.pool).await?;
+        user.config_mut().add_group(&group, &self.pool).await?;
       }
 
       self
@@ -52,22 +53,22 @@ impl Commands for Handler {
     Ok(())
   }
 
-  async fn about(self) -> Result<()> {
+  async fn about(&self) -> Result<()> {
     self.reply(reply!(const "about.md")).await?;
     Ok(())
   }
 
-  async fn show_config(self) -> Result<()> {
+  async fn show_config(&self) -> Result<()> {
     self
       .reply(reply!(const "config.md"))
-      .reply_markup(self.config_markup())
+      .reply_markup(self.config_markup().await)
       .await?;
 
     self.delete_message(self.message.chat.id, self.message.id).await?;
     Ok(())
   }
 
-  async fn today(self) -> Result<()> {
+  async fn today(&self) -> Result<()> {
     if let Some(snapshot) = self.parser.read().await.latest_today() {
       self.reply_snapshot(snapshot).await?;
     } else {
@@ -76,7 +77,7 @@ impl Commands for Handler {
     Ok(())
   }
 
-  async fn next(self) -> Result<()> {
+  async fn next(&self) -> Result<()> {
     if let Some(snapshot) = self.parser.read().await.latest_next() {
       self.reply_snapshot(snapshot).await?;
     } else {
@@ -86,14 +87,14 @@ impl Commands for Handler {
     Ok(())
   }
 
-  async fn version(self) -> Result<()> {
+  async fn version(&self) -> Result<()> {
     self.reply(crate::build_info::build_info()).await?;
     Ok(())
   }
 }
 
 impl DeveloperCommands for Handler {
-  async fn userlist(self) -> Result<()> {
+  async fn userlist(&self) -> Result<()> {
     let users = User::get_all(&self.pool).await?;
     let mut reply = format!("Всего пользователей: <code>{}</code>\n\n", users.len());
     users

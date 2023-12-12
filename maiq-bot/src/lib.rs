@@ -5,10 +5,10 @@ mod format;
 mod handler;
 mod parser;
 
+use anyhow::Result;
 use std::sync::Arc;
 use teloxide::utils::command::BotCommands;
 use tokio::sync::RwLock;
-use anyhow::Result;
 
 use maiq_parser_next::prelude::*;
 use parser::start_parser_service;
