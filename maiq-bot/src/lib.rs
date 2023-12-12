@@ -1,7 +1,6 @@
 mod build_info;
 mod callbacks;
 mod commands;
-mod error;
 mod format;
 mod handler;
 mod parser;
@@ -26,8 +25,6 @@ mod macros;
 
 #[macro_use]
 extern crate log;
-
-pub use error::Error;
 
 use crate::callbacks::filter_callback;
 use crate::callbacks::Callback;

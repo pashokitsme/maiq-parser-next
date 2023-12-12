@@ -15,7 +15,6 @@ macro_rules! markup {
   };
 }
 
-
 #[macro_export]
 macro_rules! make_commands {
   {
@@ -93,6 +92,7 @@ macro_rules! make_callbacks {
         match self {
           $(Callback::$name$({$($arg_name),*})? => executor.$fn_name($($($arg_name)*,)?).await?),*
         };
+
         Ok(())
       }
     }
