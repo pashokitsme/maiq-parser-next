@@ -4,9 +4,10 @@ use std::time::Duration;
 use teloxide::prelude::*;
 use tokio::task::JoinSet;
 
+use anyhow::Result;
+
 use crate::format::FormatSnapshot;
 use crate::reply;
-use crate::Result;
 use crate::SnapshotParser;
 
 use maiq_db::models::User;

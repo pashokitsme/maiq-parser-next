@@ -3,7 +3,8 @@ use crate::format::random_greeting;
 use crate::handler::Handler;
 use crate::make_commands;
 use crate::reply;
-use crate::Result;
+
+use anyhow::Result;
 
 use maiq_db::models::User;
 use maiq_parser_next::parser::GROUP_NAMES;

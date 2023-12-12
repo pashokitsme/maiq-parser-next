@@ -1,17 +1,10 @@
-#[derive(Debug)]
+use thiserror::Error;  
+
+#[derive(Error, Debug)]
 pub enum Error {
-  Sqlx(sqlx::Error),
-  Migrate(sqlx::migrate::MigrateError),
-}
-
-impl From<sqlx::Error> for Error {
-  fn from(value: sqlx::Error) -> Self {
-    Self::Sqlx(value)
-  }
-}
-
-impl From<sqlx::migrate::MigrateError> for Error {
-  fn from(value: sqlx::migrate::MigrateError) -> Self {
-    Self::Migrate(value)
-  }
+  #[error("sqlx: {0}")]
+  Sqlx(#[from] sqlx::Error),
+  
+  #[error("migrate: {0}")]
+  Migrate(#[from] sqlx::migrate::MigrateError),
 }

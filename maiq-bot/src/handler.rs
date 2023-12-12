@@ -11,11 +11,12 @@ use teloxide::payloads::SendMessage;
 use teloxide::requests::JsonRequest;
 use teloxide::types::InlineKeyboardMarkup;
 
+use anyhow::Result;
+
 use crate::callbacks::Callback;
 use crate::format::*;
 use crate::reply;
 use crate::Caller;
-use crate::Result;
 use crate::SnapshotParser;
 
 #[derive(Clone)]

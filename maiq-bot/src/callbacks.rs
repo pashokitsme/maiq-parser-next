@@ -6,11 +6,12 @@ use teloxide::types::InlineKeyboardButton;
 use teloxide::types::InlineKeyboardMarkup;
 use teloxide::types::ReplyMarkup;
 
+use anyhow::Result;
+
 use crate::handler::Handler;
 use crate::make_callbacks;
 use crate::markup;
 use crate::reply;
-use crate::Result;
 
 
 make_callbacks! {

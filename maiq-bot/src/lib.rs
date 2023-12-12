@@ -9,6 +9,7 @@ mod parser;
 use std::sync::Arc;
 use teloxide::utils::command::BotCommands;
 use tokio::sync::RwLock;
+use anyhow::Result;
 
 use maiq_parser_next::prelude::*;
 use parser::start_parser_service;
@@ -33,7 +34,6 @@ use crate::callbacks::Callback;
 use crate::commands::Command;
 use crate::commands::DeveloperCommand;
 
-pub type Result<T> = std::result::Result<T, Error>;
 pub type SnapshotParserImpl = SnapshotParser4;
 pub type SnapshotParser = Arc<RwLock<maiq_parser_next::prelude::SnapshotParser<SnapshotParserImpl>>>;
 
@@ -106,7 +106,7 @@ async fn set_commands(bot: &Bot) -> Result<()> {
   Ok(())
 }
 
-fn dispatch_tree() -> UpdateHandler<Error> {
+fn dispatch_tree() -> UpdateHandler<anyhow::Error> {
   dp::entry()
     .branch(
       Update::filter_message()

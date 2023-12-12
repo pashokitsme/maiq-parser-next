@@ -1,20 +1,16 @@
-use serde::Deserialize;
-use serde::Serialize;
+use thiserror::Error;
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Error, Debug)]
 pub enum Error {
-  Network(String),
+  #[error("network: {0}")]
+  Network(#[from] Box<ureq::Error>),
+
+  #[error("no table in html document")]
   NoHtmlTable,
 }
 
 impl Error {
   pub fn can_be_skipped(&self) -> bool {
     matches!(self, Self::NoHtmlTable)
-  }
-}
-
-impl From<ureq::Error> for Error {
-  fn from(value: ureq::Error) -> Self {
-    Error::Network(value.to_string())
   }
 }
