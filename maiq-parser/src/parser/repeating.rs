@@ -117,7 +117,7 @@ impl<P: SnapshotParserAgent + Send + Sync + 'static> SnapshotParser<P> {
   pub async fn fetch_next(&self) -> SnapshotParseResult {
     if let Some(url) = self.next_remote_url.as_ref().cloned() {
       self
-        .parse_exact(url, self.prev_today_snapshot.as_ref())
+        .parse_exact(url, self.prev_next_snapshot.as_ref())
         .await
         .map(Some)
     } else {
