@@ -1,5 +1,6 @@
 mod build_info;
 mod callbacks;
+mod changelog;
 mod commands;
 mod format;
 mod handler;
