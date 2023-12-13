@@ -100,6 +100,7 @@ impl Commands for Handler {
     let changelogs = changelog::changelog_names()
       .into_iter()
       .map(|(index, name)| [Callback::ChangelogPage { page: index }.with_text(name).into()]);
+    self.delete_message(self.message.chat.id, self.message.id).await?;
     self.reply("Ченджлоги").reply_markup(markup!(changelogs)).await?;
     Ok(())
   }
