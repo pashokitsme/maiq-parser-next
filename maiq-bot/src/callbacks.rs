@@ -1,3 +1,4 @@
+use anyhow::anyhow;
 use maiq_parser_next::parser::GROUP_NAMES;
 use teloxide::payloads::EditMessageTextSetters;
 use teloxide::requests::Requester;
@@ -8,6 +9,7 @@ use teloxide::types::ReplyMarkup;
 
 use anyhow::Result;
 
+use crate::changelog;
 use crate::handler::Handler;
 use crate::make_callbacks;
 use crate::markup;
@@ -20,6 +22,8 @@ make_callbacks! {
   SetGroup(name: String) => set_group,
   GetStartLink => get_start_link,
   ToggleNotifications => toggle_notifications,
+  ChangelogPage(page: usize) => show_changelog,
+  Nothing => nothing,
   Close => close
 }
 
@@ -103,6 +107,36 @@ impl Callbacks for Handler {
       .edit(reply!(const "config.md"))
       .reply_markup(self.config_markup().await)
       .await?;
+    Ok(())
+  }
+
+  async fn show_changelog(&self, page: usize) -> Result<()> {
+    let Some(changelog) = changelog::changelog_by_index(page) else { return Err(anyhow!("Changelog {page} not found")) };
+    self.answer().await?;
+
+    let mut markup = vec![];
+    if page > 0 {
+      markup.push(Callback::ChangelogPage { page: page - 1 }.with_text("≪").into())
+    }
+    let changelogs_len = changelog::changelog_len();
+    markup.push(
+      Callback::Nothing
+        .with_text(format!("{}/{}", page, changelogs_len - 1))
+        .into(),
+    );
+    if page < changelogs_len - 1 {
+      markup.push(Callback::ChangelogPage { page: page + 1 }.with_text("≫").into())
+    }
+
+    self
+      .edit(changelog)
+      .reply_markup(markup!([markup, vec![Callback::Close.with_text("Закрыть").into()]]))
+      .await?;
+    Ok(())
+  }
+
+  async fn nothing(&self) -> Result<()> {
+    self.answer().await?;
     Ok(())
   }
 

@@ -1,7 +1,9 @@
 use crate::callbacks::Callback;
+use crate::changelog;
 use crate::format::random_greeting;
 use crate::handler::Handler;
 use crate::make_commands;
+use crate::markup;
 use crate::reply;
 
 use anyhow::Result;
@@ -18,6 +20,7 @@ make_commands! {
     Next[desc: "Завтра"] => next,
     About[desc: "Информация"] => about,
     Config[desc: "Настройки"] => show_config,
+    Changelogs[desc: "История изменений"] => show_changelogs,
     Version[desc: "Версия"] => version
   },
   dev: {
@@ -90,6 +93,14 @@ impl Commands for Handler {
 
   async fn version(&self) -> Result<()> {
     self.reply(crate::build_info::build_info()).await?;
+    Ok(())
+  }
+
+  async fn show_changelogs(&self) -> Result<()> {
+    let changelogs = changelog::changelog_names()
+      .into_iter()
+      .map(|(index, name)| [Callback::ChangelogPage { page: index }.with_text(name).into()]);
+    self.reply("Ченджлоги").reply_markup(markup!(changelogs)).await?;
     Ok(())
   }
 
