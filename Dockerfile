@@ -1,4 +1,4 @@
-FROM rust as builder
+FROM rust:slim-bullseye as builder
 
 WORKDIR /src
 COPY . .
