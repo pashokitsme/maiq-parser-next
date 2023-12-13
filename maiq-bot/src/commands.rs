@@ -102,7 +102,7 @@ impl DeveloperCommands for Handler {
   async fn userlist(&self) -> Result<()> {
     let users = User::get_all(&self.pool).await?;
     let mut reply = format!("Всего пользователей: <code>{}</code>\n\n", users.len());
-    users
+    for (idx, user) in users
       .into_iter()
       .map(|user| {
         let enabled = if user.config().is_notifies_enabled() { "[+]" } else { "[-]" };
@@ -115,13 +115,17 @@ impl DeveloperCommands for Handler {
           modified = user.modified_at(),
           groups = user.config().groups().join(", ")
         )
-      })
-      .for_each(|u| reply.push_str(&u));
+      }).enumerate() {
+        reply.push_str(&user);
+        if idx % 15 == 0 {
+          self
+            .reply(&reply)
+            .reply_markup(Callback::Close.with_text("Закрыть"))
+            .await?;
+          reply.clear();
+        }
+      }
 
-    self
-      .reply(reply)
-      .reply_markup(Callback::Close.with_text("Закрыть"))
-      .await?;
     Ok(())
   }
 
