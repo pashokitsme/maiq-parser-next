@@ -1,17 +1,36 @@
 use crate::callbacks::Callback;
-use crate::commands::*;
+use crate::changelog;
 use crate::format::random_greeting;
 use crate::handler::Handler;
+use crate::make_commands;
+use crate::markup;
 use crate::reply;
-use crate::Result;
+
+use anyhow::Result;
 
 use maiq_db::models::User;
 use maiq_parser_next::parser::GROUP_NAMES;
 use teloxide::payloads::SendMessageSetters;
 use teloxide::requests::Requester;
 
+make_commands! {
+  pub: {
+    Start[desc: "Стартовая команда", args: (group_indexes: String)] => start,
+    Today[desc: "Сегодня"] => today,
+    Next[desc: "Завтра"] => next,
+    About[desc: "Информация"] => about,
+    Config[desc: "Настройки"] => show_config,
+    Changelogs[desc: "История изменений"] => show_changelogs,
+    Version[desc: "Версия"] => version
+  },
+  dev: {
+    UserList => userlist,
+    TestErr => test_err
+  }
+}
+
 impl Commands for Handler {
-  async fn start(mut self, group_indexes: String) -> Result<()> {
+  async fn start(&self, group_indexes: String) -> Result<()> {
     let username = self.message.from().map(|u| u.full_name()).unwrap_or_default();
     self
       .reply(reply!("start.md", greeting = random_greeting(), username = username))
@@ -24,8 +43,9 @@ impl Commands for Handler {
       .collect::<Vec<String>>();
 
     if !groups.is_empty() {
+      let mut user = self.user().await;
       for group in &groups {
-        self.user.config_mut().add_group(&group, &self.pool).await?;
+        user.config_mut().add_group(&group, &self.pool).await?;
       }
 
       self
@@ -37,22 +57,22 @@ impl Commands for Handler {
     Ok(())
   }
 
-  async fn about(self) -> Result<()> {
+  async fn about(&self) -> Result<()> {
     self.reply(reply!(const "about.md")).await?;
     Ok(())
   }
 
-  async fn show_config(self) -> Result<()> {
+  async fn show_config(&self) -> Result<()> {
     self
       .reply(reply!(const "config.md"))
-      .reply_markup(self.config_markup())
+      .reply_markup(self.config_markup().await)
       .await?;
 
     self.delete_message(self.message.chat.id, self.message.id).await?;
     Ok(())
   }
 
-  async fn today(self) -> Result<()> {
+  async fn today(&self) -> Result<()> {
     if let Some(snapshot) = self.parser.read().await.latest_today() {
       self.reply_snapshot(snapshot).await?;
     } else {
@@ -61,7 +81,7 @@ impl Commands for Handler {
     Ok(())
   }
 
-  async fn next(self) -> Result<()> {
+  async fn next(&self) -> Result<()> {
     if let Some(snapshot) = self.parser.read().await.latest_next() {
       self.reply_snapshot(snapshot).await?;
     } else {
@@ -71,17 +91,30 @@ impl Commands for Handler {
     Ok(())
   }
 
-  async fn version(self) -> Result<()> {
+  async fn version(&self) -> Result<()> {
     self.reply(crate::build_info::build_info()).await?;
     Ok(())
+  }
+
+  async fn show_changelogs(&self) -> Result<()> {
+    let changelogs = changelog::changelog_names()
+      .into_iter()
+      .map(|(index, name)| [Callback::ChangelogPage { page: index }.with_text(name).into()]);
+    self.delete_message(self.message.chat.id, self.message.id).await?;
+    self.reply("Ченджлоги").reply_markup(markup!(changelogs)).await?;
+    Ok(())
+  }
+
+  async fn finalize(&self, result: Result<()>) -> Result<()> {
+    self.default_finalize(result).await
   }
 }
 
 impl DeveloperCommands for Handler {
-  async fn userlist(self) -> Result<()> {
+  async fn userlist(&self) -> Result<()> {
     let users = User::get_all(&self.pool).await?;
     let mut reply = format!("Всего пользователей: <code>{}</code>\n\n", users.len());
-    users
+    for (idx, user) in users
       .into_iter()
       .map(|user| {
         let enabled = if user.config().is_notifies_enabled() { "[+]" } else { "[-]" };
@@ -94,13 +127,25 @@ impl DeveloperCommands for Handler {
           modified = user.modified_at(),
           groups = user.config().groups().join(", ")
         )
-      })
-      .for_each(|u| reply.push_str(&u));
+      }).enumerate() {
+        reply.push_str(&user);
+        if idx % 15 == 0 {
+          self
+            .reply(&reply)
+            .reply_markup(Callback::Close.with_text("Закрыть"))
+            .await?;
+          reply.clear();
+        }
+      }
 
-    self
-      .reply(reply)
-      .reply_markup(Callback::Close.with_text("Закрыть"))
-      .await?;
     Ok(())
+  }
+
+  async fn test_err(&self) -> Result<()> {
+    Err(anyhow::anyhow!("Test error"))
+  }
+
+  async fn finalize(&self, result: Result<()>) -> Result<()> {
+    self.default_finalize(result).await
   }
 }

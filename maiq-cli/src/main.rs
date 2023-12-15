@@ -1,5 +1,6 @@
 use std::env;
 
+use maiq_parser_next::parser::SnapshotParserBuilder;
 use maiq_parser_next::prelude::*;
 
 use owo_colors::OwoColorize;
@@ -7,15 +8,14 @@ use owo_colors::OwoColorize;
 #[tokio::main]
 async fn main() {
   pretty_env_logger::init();
-  let (parser, mut rx) = SnapshotParserBuilder::new()
+  let parser = SnapshotParserBuilder::new()
     .with_today_url("https://rsp.chemk.org/4korp/today.htm")
     .unwrap()
     .build::<SnapshotParser4>()
     .unwrap();
 
-  _ = parser.check(true).await;
-
-  let (snapshot, _) = rx.recv().await.unwrap().unwrap();
+  let today = parser.fetch_today().await;
+  let snapshot = today.unwrap().unwrap().0;
 
   if env::args().len() > 1 {
     print_group(snapshot.group(&env::args().nth(1).unwrap()).expect("no such group"));

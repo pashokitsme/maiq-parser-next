@@ -1,7 +1,6 @@
 use std::iter::Peekable;
-use std::sync::Arc;
 
-use crate::parser::Parser;
+use crate::parser::SnapshotParserAgent;
 
 use crate::parser::default_lectures::*;
 use crate::parser::parse_date::*;
@@ -31,17 +30,17 @@ struct RawLecture {
 }
 
 pub struct SnapshotParser4 {
-  default_lectures: Arc<DefaultLectures>,
+  default_lectures: DefaultLectures,
   fallback_date: DateTime,
   group_names: Vec<Box<str>>,
 }
 
-impl Parser for SnapshotParser4 {
+impl SnapshotParserAgent for SnapshotParser4 {
   fn new(fallback_date: DateTime) -> Self {
-    Self { default_lectures: Arc::from(DefaultLectures::default()), fallback_date, group_names: vec![] }
+    Self { default_lectures: DefaultLectures::default(), fallback_date, group_names: vec![] }
   }
 
-  fn with_default_lectures(self, lectures: Arc<DefaultLectures>) -> Self {
+  fn with_default_lectures(self, lectures: DefaultLectures) -> Self {
     Self { default_lectures: lectures, ..self }
   }
 

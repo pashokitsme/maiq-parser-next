@@ -6,10 +6,13 @@ use pulldown_cmark::Parser;
 
 fn main() {
   println!("cargo:rerun-if-changed=replies");
+  println!("cargo:rerun-if-changed=../.changes");
+
   build_info_build::build_script();
   for path in walkdir::WalkDir::new("replies")
     .max_depth(10)
     .into_iter()
+    .chain(walkdir::WalkDir::new("../.changes").max_depth(1))
     .filter(|entry| matches!(entry.as_ref().unwrap().path().extension().and_then(|s| s.to_str()), Some("md")))
     .filter_map(|e| e.ok().map(|e| e.into_path()))
   {
