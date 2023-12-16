@@ -99,6 +99,7 @@ impl Callbacks for Handler {
       true => user.config_mut().remove_group(name, &self.pool).await?,
       false => user.config_mut().add_group(name, &self.pool).await?,
     }
+    drop(user);
     self.show_my_groups().await
   }
 
