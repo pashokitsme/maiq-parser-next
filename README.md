@@ -10,6 +10,7 @@
   Превратилось в это:
   <img src="./.screenshots/bot-example.png">
 </p>
+
 ___
 
 ## Сборка
