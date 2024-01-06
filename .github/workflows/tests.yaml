@@ -21,7 +21,6 @@ jobs:
       - name: Setup toolchain
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: nightly
           components: clippy
 
       - name: Linting
