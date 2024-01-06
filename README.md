@@ -9,8 +9,7 @@
   <img src="./screenshots/bot-example.png">
 </p>
 
-На данный момент работает только в пределах 4 корпуса, а уведомления приходят только для изменённых групп.
-
+На данный момент работает только в пределах 4 корпуса.
 ___
 
 ## Сборка
@@ -41,6 +40,9 @@ docker run -v <PATH>:/var/sqlite.db -e RUST_LOG=info -e RUST_LOG_STYLE=always -e
 Бесполезная штука, которая изначально планировалась, как cli-утилита для вывода расписания, но разве это кому-то надо?
 
 В директории `.changes` находится человекочитаемый лог изменений, `maiq-bot` умеет его отображать.
+
+## Contributing
+В необходимости этой секции я сомниваюсь ещё больше, чем в необходимости существования `maiq-cli`, но тем не менее приглашаю в [issues](https://github.com/pashokitsme/maiq-parser-next/issues) и [pull requests](https://github.com/pashokitsme/maiq-parser-next/pulls), все остальные вопросы - в [телегу](https://t.me/pashokitsme)
 
 ## Предыдущие версии
 Изначально этот репозиторий был разделён на три - [maiq-web-api](https://github.com/pashokitme/maiq-web-api), [maiq-parser](https://github.com/pashokitsme/maiq-parser) и [maiq-bot](https://github.com/pashokitsme/maiq-bot). Быстро выяснилось, что такая архитектура неудобная, нерасширяемая, громоздкая, ещё и кушает больше ресурсов. Переписал и теперь это монорепо, а эти трое - в архиве на память.
