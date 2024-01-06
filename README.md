@@ -4,9 +4,9 @@
 
 <p align="center">
   Таким образом, вот это:
-  <img src="./screenshots/rsp-example.jpg" />
+  <img src="./.screenshots/rsp-example.jpg" />
   Превратилось в это:
-  <img src="./screenshots/bot-example.png">
+  <img src="./.screenshots/bot-example.png">
 </p>
 
 На данный момент работает только в пределах 4 корпуса.
