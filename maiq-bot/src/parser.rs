@@ -2,6 +2,8 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use teloxide::prelude::*;
+use teloxide::ApiError;
+use teloxide::RequestError;
 use tokio::task::JoinSet;
 
 use anyhow::Result;
@@ -72,7 +74,7 @@ async fn on_update(bot: Bot, pool: Arc<Pool>, snapshot: Snapshot, changes: Vec<S
       (id, groups)
     })
     .filter(|(_, groups)| !groups.is_empty())
-    .map(|(id, groups)| send_snapshot(bot.clone(), snapshot.clone(), id, groups))
+    .map(|(id, groups)| try_send(bot.clone(), pool.clone(), snapshot.clone(), id, groups))
     .for_each(|task| {
       tasks.spawn(task);
     });
@@ -100,19 +102,36 @@ fn on_error(err: maiq_parser_next::error::Error) -> Result<()> {
   Ok(())
 }
 
-async fn send_snapshot(bot: Bot, snapshot: Arc<Snapshot>, chat_id: i64, groups: Vec<String>) -> Result<()> {
-  let send = |msg| {
-    bot
-      .send_message(ChatId(chat_id), msg)
-      .parse_mode(teloxide::types::ParseMode::Html)
-      .disable_web_page_preview(true)
-  };
+async fn try_send(bot: Bot, pool: Arc<Pool>, snapshot: Arc<Snapshot>, chat_id: i64, groups: Vec<String>) -> Result<()> {
+  macro_rules! send {
+    ($msg: expr) => {
+      let res = bot
+        .send_message(ChatId(chat_id), $msg)
+        .parse_mode(teloxide::types::ParseMode::Html)
+        .disable_web_page_preview(true)
+        .await;
+
+      if let Err(RequestError::Api(ref api_error)) = res {
+        if matches!(
+          api_error,
+          ApiError::BotBlocked | ApiError::BotKicked | ApiError::BotKickedFromSupergroup | ApiError::UserDeactivated
+        ) {
+          let mut user = User::get_by_id_or_create(chat_id, &pool).await?;
+          user.config_mut().set_is_notifies_enabled(false);
+          user.update(&pool).await?;
+          warn!(target: "rx-parser", "deactivated user {:?} ({}) due to: {:?}", user.cached_fullname(), chat_id, api_error);
+        }
+      }
+
+      res?
+    };
+  }
 
   match groups.len() {
     1 => {
       let group_name = groups.first().unwrap();
       if let Some(format) = FormatSnapshot::select_group(&snapshot, group_name) {
-        send(format.to_string()).await?;
+        send!(format.to_string());
       }
     }
     _ => {
@@ -120,7 +139,7 @@ async fn send_snapshot(bot: Bot, snapshot: Arc<Snapshot>, chat_id: i64, groups: 
         .iter()
         .filter_map(|group| FormatSnapshot::select_group(&snapshot, group))
       {
-        send(reply!("snapshot/many_groups.md", group_name = format.group_name(), formatted = format.to_string())).await?;
+        send!(reply!("snapshot/many_groups.md", group_name = format.group_name(), formatted = format.to_string()));
       }
     }
   }
