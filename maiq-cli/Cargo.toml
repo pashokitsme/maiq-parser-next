@@ -9,6 +9,6 @@ license = { workspace = true }
 [dependencies]
 maiq-db = { path = "../maiq-db" }
 maiq-parser-next = { path = "../maiq-parser" }
-owo-colors = "3.5.0"
-pretty_env_logger = "0.5.0"
-tokio = { version = "1.32.0", features = ["rt-multi-thread", "macros"] }
+owo-colors = "^4"
+pretty_env_logger = "^0.5"
+tokio = { version = "^1", features = ["rt-multi-thread", "macros"] }
