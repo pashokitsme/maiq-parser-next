@@ -85,7 +85,7 @@ impl SnapshotParser4 {
 
         (parse_group_subgroup_pair(val), parse_order_lecture_pair(row.next(), &mut row))
       }
-      Some(val) => (parse_group_subgroup_pair(&anchor), parse_order_lecture_pair(Some(val), &mut row)),
+      Some(val) => (parse_group_subgroup_pair(anchor), parse_order_lecture_pair(Some(val), &mut row)),
       _ => return RawLecture::default(),
     };
 
