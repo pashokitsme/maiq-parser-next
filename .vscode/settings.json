@@ -1,4 +1,5 @@
 {
 	"rust-analyzer.cargo.autoreload": true,
-	"rust-analyzer.check.allTargets": true
+	"rust-analyzer.check.allTargets": true,
+	"rust-analyzer.features.all": "all"
 }

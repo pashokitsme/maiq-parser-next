@@ -3,12 +3,14 @@ use crate::parser::SnapshotParserAgent;
 use crate::parser::default_lectures::*;
 use crate::parser::parse_date::*;
 use crate::parser::table::*;
+use crate::parser::GROUP_NAMES;
+
 use crate::snapshot::*;
 use crate::utils::time::*;
 
 const PREVIOUS_ORDER_PLACEHOLDER: &str = "-1";
 
-#[derive(Clone, Default, Debug)]
+#[derive(Clone, Default, PartialEq, Debug)]
 struct RawLecture {
   order: Option<Box<str>>,
   group_name: Option<Box<str>>,
@@ -168,13 +170,16 @@ impl SnapshotParser4 {
 impl RawLecture {
   pub fn parse_from_row(row: Vec<String>) -> Option<Self> {
     let mut row = row.into_iter();
-    let group_name = row.next().take_if(|name| !name.is_empty());
+    let group_name = row
+      .next()
+      .take_if(|name| !name.is_empty() && GROUP_NAMES.contains(&name.as_str()));
     let order = row.next().take_if(|order| !order.is_empty())?;
 
     let subgroup_name_teacher_classroom = row.next().take_if(|s| !s.is_empty())?;
 
     let (subgroup, name_teacher_classroom) = subgroup_name_teacher_classroom
       .split_once("п/г")
+      .map(|(subgroup, rest)| (subgroup.trim(), rest.trim()))
       .unwrap_or(("", subgroup_name_teacher_classroom.as_str()));
 
     let subgroup = Some(subgroup).take_if(|s| !s.is_empty());
@@ -200,12 +205,71 @@ mod tests {
   use super::*;
 
   #[rstest]
-  #[case("1")]
-  #[case("1,2,3,")]
-  #[case("2,3")]
-  #[case("1,2,3(1ч)")]
-  #[case("")]
-  fn correct_order(#[case] order: &str) {
-    assert!(is_correct_order(order))
+  #[case(
+  vec!["".to_string(), "2".to_string(), "По расписанию".to_string()], 
+  Some(RawLecture {
+    order: Some("2".into()),
+    group_name: None,
+    subgroup: None,
+    name: Some("По расписанию".into()),
+    teacher: None,
+    classroom: None
+  }))]
+  #[case(
+    vec!["Ир5-21".to_string(), "1".to_string(), "МДК 08.02, Маркова М.А., 211М".to_string()], 
+    Some(RawLecture {
+    order: Some("1".into()),
+    group_name: Some("Ир5-21".into()),
+    subgroup: None,
+    name: Some("МДК 08.02".into()),
+    teacher: Some("Маркова М.А.".into()),
+    classroom: Some("211М".into())
+  }))]
+  #[case(
+    vec!["Ир5-21".to_string(), "1".to_string(), "1п/г МДК 08.02, Маркова М.А., 211М".to_string()], 
+    Some(RawLecture {
+    order: Some("1".into()),
+    group_name: Some("Ир5-21".into()),
+    subgroup: Some("1".into()),
+    name: Some("МДК 08.02".into()),
+    teacher: Some("Маркова М.А.".into()),
+    classroom: Some("211М".into())
+  }))]
+  #[case(
+    vec!["Ир5-21".to_string(), "1".to_string(), "2 п/г МДК 08.02, Маркова М.А., 211М".to_string()], 
+    Some(RawLecture {
+    order: Some("1".into()),
+    group_name: Some("Ир5-21".into()),
+    subgroup: Some("2".into()),
+    name: Some("МДК 08.02".into()),
+    teacher: Some("Маркова М.А.".into()),
+    classroom: Some("211М".into())
+  }))]
+  #[case(
+    vec!["".to_string(), "1".to_string(), "2 п/г МДК 08.02, Маркова М.А., 211М".to_string()], 
+    Some(RawLecture {
+    order: Some("1".into()),
+    group_name: None,
+    subgroup: Some("2".into()),
+    name: Some("МДК 08.02".into()),
+    teacher: Some("Маркова М.А.".into()),
+    classroom: Some("211М".into())
+  }))]
+  #[case(
+    vec!["".to_string(), "1".to_string(), "2 п/г МДК 08.02, Маркова М.А.".to_string()], 
+    Some(RawLecture {
+    order: Some("1".into()),
+    group_name: None,
+    subgroup: Some("2".into()),
+    name: Some("МДК 08.02".into()),
+    teacher: Some("Маркова М.А.".into()),
+    classroom: None
+  }))]
+  #[case(
+    vec!["q234".to_string(), "as".to_string()],
+    None
+  )]
+  fn parse_raw_lecture(#[case] input: Vec<String>, #[case] expected: Option<RawLecture>) {
+    assert_eq!(expected, RawLecture::parse_from_row(input))
   }
 }

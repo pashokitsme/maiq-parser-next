@@ -9,7 +9,7 @@ use owo_colors::OwoColorize;
 async fn main() {
   pretty_env_logger::init();
   let parser = SnapshotParserBuilder::new()
-    .with_today_url("https://rsp.chemk.org/4korp/tomorrow.htm")
+    .with_today_url("https://rsp.chemk.org/4korp/today.htm")
     .unwrap()
     .build::<SnapshotParser4>()
     .unwrap();
