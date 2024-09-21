@@ -12,7 +12,11 @@ pub const GROUP_NAMES: [&str; 40] = [
   "С3-20",
 ];
 
+#[cfg(not(debug_assertions))]
 pub const DEFAULT_TIME_BOUNDS: std::ops::Range<u32> = 7..18;
+
+#[cfg(debug_assertions)]
+pub const DEFAULT_TIME_BOUNDS: std::ops::Range<u32> = 0..24;
 
 use std::marker::PhantomData;
 
