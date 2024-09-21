@@ -4,8 +4,8 @@ const MONTHS: [&str; 12] =
   ["января", "февраля", "марта", "апреля", "мая", "июня", "июля", "августа", "сентября", "октября", "ноября", "декабря"];
 
 pub fn parse_date<S: AsRef<str>, T: Iterator<Item = Vec<S>>>(row: &mut T) -> Option<DateTime> {
-  let x = row.next().unwrap();
-  let mut split = x.first().unwrap().as_ref().split(' ');
+  let x = row.next()?;
+  let mut split = x.first()?.as_ref().split(' ');
 
   while let Some(word) = split.next() {
     let day = match word.trim().parse::<u32>() {

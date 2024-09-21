@@ -1,25 +1,16 @@
-use std::iter::Peekable;
-
 use crate::parser::SnapshotParserAgent;
 
 use crate::parser::default_lectures::*;
 use crate::parser::parse_date::*;
 use crate::parser::table::*;
+use crate::parser::GROUP_NAMES;
+
 use crate::snapshot::*;
 use crate::utils::time::*;
 
-macro_rules! empty_to_none {
-  ($e: expr) => {
-    match $e {
-      Some(x) if !x.is_empty() => Some(x.into()),
-      _ => None,
-    }
-  };
-}
-
 const PREVIOUS_ORDER_PLACEHOLDER: &str = "-1";
 
-#[derive(Clone, Default, Debug)]
+#[derive(Clone, Default, PartialEq, Debug)]
 struct RawLecture {
   order: Option<Box<str>>,
   group_name: Option<Box<str>>,
@@ -56,47 +47,32 @@ impl SnapshotParserAgent for SnapshotParser4 {
     let date = parse_date(&mut rows).unwrap_or(self.fallback_date);
     let is_week_even = date.iso_week().week0() % 2 == 0;
 
-    let raw_lectures = self.parse_raw_lectures(rows.skip(1).peekable());
-    let mut groups = self.assign_to_groups(raw_lectures.into_iter(), is_week_even);
-    groups.retain(|g| g.has_lectures());
+    let raw_lectures = self.parse_raw_lectures(rows);
+    let groups = self.assign_to_groups(raw_lectures.into_iter(), is_week_even);
     Snapshot::new(date, groups)
   }
 }
 
 impl SnapshotParser4 {
-  fn parse_raw_lectures<S: AsRef<str>, I: Iterator<Item = Vec<S>> + Clone>(&self, rows: Peekable<I>) -> Vec<RawLecture> {
-    let mut anchor = "Unknown".into();
-    rows
-      .map(|row| self.parse_raw_lecture(row.iter().peekable(), &mut anchor))
-      .collect()
-  }
+  fn parse_raw_lectures<I: Iterator<Item = Vec<String>>>(&self, rows: I) -> Vec<RawLecture> {
+    let mut left = vec![];
+    let mut right = vec![];
 
-  fn parse_raw_lecture<S: AsRef<str>, I: Iterator<Item = S> + Clone>(
-    &self,
-    mut row: Peekable<I>,
-    anchor: &mut Box<str>,
-  ) -> RawLecture {
-    let ((group_name, subgroup), (order, lecture_name)) = match row.next() {
-      Some(val) if self.is_group_name(val.as_ref()) => {
-        let val = val.as_ref();
-        if &**anchor != val {
-          *anchor = Box::from(val);
-        }
-
-        (parse_group_subgroup_pair(val), parse_order_lecture_pair(row.next(), &mut row))
+    for row in rows.into_iter().skip(1) {
+      let mut chunks = row.chunks(3);
+      if let Some(left_row) = chunks.next() {
+        left.push(left_row.to_vec());
       }
-      Some(val) => (parse_group_subgroup_pair(&anchor), parse_order_lecture_pair(Some(val), &mut row)),
-      _ => return RawLecture::default(),
-    };
+      if let Some(right_row) = chunks.next() {
+        right.push(right_row.to_vec());
+      }
+    }
 
-    let (lecture_name, teacher) = split_teacher(lecture_name);
-
-    let classroom = match row.next() {
-      Some(x) if !x.as_ref().trim().is_empty() => Some(Box::from(x.as_ref().trim())),
-      _ => None,
-    };
-
-    RawLecture { order: Some(order), group_name, subgroup, name: lecture_name, teacher, classroom }
+    left
+      .into_iter()
+      .chain(right)
+      .filter_map(RawLecture::parse_from_row)
+      .collect()
   }
 
   fn assign_to_groups<I: Iterator<Item = RawLecture>>(self, lectures: I, is_week_even: bool) -> Vec<Group> {
@@ -110,9 +86,14 @@ impl SnapshotParser4 {
 
     lectures
       .map(|mut lecture| {
+        if lecture.group_name.is_none() {
+          lecture.group_name = prev.as_ref().and_then(|p| p.group_name.clone());
+        }
+
         if matches!(lecture.order.as_deref(), Some(PREVIOUS_ORDER_PLACEHOLDER)) {
           lecture.order = prev.as_ref().and_then(|p| p.order.clone())
         }
+
         prev = Some(lecture.clone());
         lecture
       })
@@ -120,12 +101,13 @@ impl SnapshotParser4 {
       .for_each(|lecture| {
         let group_name = lecture.group_name.as_deref().unwrap();
         let group = groups.iter_mut().find(|x| x.name() == group_name);
-        if group.is_none() {
-          return;
+        if let Some(group) = group {
+          let lectures = self.expand_raw_lecture(lecture, is_week_even);
+          group.push_lectures(lectures.into_iter());
         }
-        let lectures = self.expand_raw_lecture(lecture, is_week_even);
-        group.unwrap().push_lectures(lectures.into_iter());
       });
+
+    groups.retain(|g| g.has_lectures());
     groups
   }
 
@@ -183,47 +165,39 @@ impl SnapshotParser4 {
       })
       .collect()
   }
+}
 
-  fn is_group_name(&self, name: &str) -> bool {
-    let name = name.split(' ').next().unwrap_or_default();
-    self.group_names.iter().any(|group| group.as_ref() == name)
+impl RawLecture {
+  pub fn parse_from_row(row: Vec<String>) -> Option<Self> {
+    let mut row = row.into_iter();
+    let group_name = row
+      .next()
+      .take_if(|name| !name.is_empty() && GROUP_NAMES.contains(&name.as_str()));
+    let order = row.next().take_if(|order| !order.is_empty())?;
+
+    let subgroup_name_teacher_classroom = row.next().take_if(|s| !s.is_empty())?;
+
+    let (subgroup, name_teacher_classroom) = subgroup_name_teacher_classroom
+      .split_once("п/г")
+      .map(|(subgroup, rest)| (subgroup.trim(), rest.trim()))
+      .unwrap_or(("", subgroup_name_teacher_classroom.as_str()));
+
+    let subgroup = Some(subgroup).take_if(|s| !s.is_empty());
+
+    let mut name_teacher_classroom = name_teacher_classroom.split(',');
+    let lecture_name = name_teacher_classroom.next()?.trim();
+    let teacher = name_teacher_classroom.next().map(|s| s.trim());
+    let classroom = name_teacher_classroom.next().map(|s| s.trim());
+
+    Some(Self {
+      order: Some(order.into()),
+      group_name: group_name.map(Box::from),
+      name: Some(lecture_name.into()),
+      teacher: teacher.map(Box::from),
+      classroom: classroom.map(Box::from),
+      subgroup: subgroup.map(Box::from),
+    })
   }
-}
-
-/// `(order?, lecture_name?)`
-fn parse_order_lecture_pair<S: AsRef<str>, I: Iterator<Item = S>>(raw: Option<S>, row: &mut I) -> (Box<str>, Option<Box<str>>) {
-  match raw {
-    Some(val) if is_correct_order(&val) => (Box::from(val.as_ref()), row.next().map(|x| x.as_ref().into())),
-    Some(val) => (Box::from(PREVIOUS_ORDER_PLACEHOLDER), Some(val.as_ref().into())),
-    None => (Box::from(PREVIOUS_ORDER_PLACEHOLDER), None),
-  }
-}
-
-fn is_correct_order<S: AsRef<str>>(raw: S) -> bool {
-  const SKIP_CHARS: [char; 6] = ['(', ')', ',', '.', 'ч', ' '];
-  raw
-    .as_ref()
-    .chars()
-    .all(|c| SKIP_CHARS.contains(&c) || c.is_numeric())
-}
-
-/// `(lecture_name, teacher_name)`
-fn split_teacher<S: AsRef<str>>(raw: Option<S>) -> (Option<Box<str>>, Option<Box<str>>) {
-  let raw = match raw {
-    Some(x) => x,
-    None => return (None, None),
-  };
-
-  if let Some((name, teacher)) = raw.as_ref().rsplit_once(',') {
-    return (Some(name.trim().into()), empty_to_none!(Some(teacher.trim())));
-  }
-  (empty_to_none!(Some(raw.as_ref())), None)
-}
-
-/// `(group_name?, subgroup?)`
-fn parse_group_subgroup_pair<S: AsRef<str>>(raw: S) -> (Option<Box<str>>, Option<Box<str>>) {
-  let mut split = raw.as_ref().split(' ').map(|x| x.trim());
-  (empty_to_none!(split.next()), empty_to_none!(split.next()))
 }
 
 #[cfg(test)]
@@ -231,26 +205,71 @@ mod tests {
   use super::*;
 
   #[rstest]
-  #[case("1")]
-  #[case("1,2,3,")]
-  #[case("2,3")]
-  #[case("1,2,3(1ч)")]
-  #[case("")]
-  fn correct_order(#[case] order: &str) {
-    assert!(is_correct_order(order))
-  }
-
-  #[rstest]
-  #[case("asdf")]
-  #[case("Информационные технологии, Иванов И.Л.")]
-  #[case("МДК.01.01 Разработка программных модулей, Пикселькина О.И.")]
-  fn incorrect_order(#[case] order: &str) {
-    assert!(!is_correct_order(order))
-  }
-
-  #[rstest]
-  #[case("Ир3-21 2 п/г", (Some("Ир3-21".into()), Some("2".into())))]
-  fn correct_splitting_group_name(#[case] name: &str, #[case] expect: (Option<Box<str>>, Option<Box<str>>)) {
-    assert_eq!(parse_group_subgroup_pair(name), expect)
+  #[case(
+  vec!["".to_string(), "2".to_string(), "По расписанию".to_string()], 
+  Some(RawLecture {
+    order: Some("2".into()),
+    group_name: None,
+    subgroup: None,
+    name: Some("По расписанию".into()),
+    teacher: None,
+    classroom: None
+  }))]
+  #[case(
+    vec!["Ир5-21".to_string(), "1".to_string(), "МДК 08.02, Маркова М.А., 211М".to_string()], 
+    Some(RawLecture {
+    order: Some("1".into()),
+    group_name: Some("Ир5-21".into()),
+    subgroup: None,
+    name: Some("МДК 08.02".into()),
+    teacher: Some("Маркова М.А.".into()),
+    classroom: Some("211М".into())
+  }))]
+  #[case(
+    vec!["Ир5-21".to_string(), "1".to_string(), "1п/г МДК 08.02, Маркова М.А., 211М".to_string()], 
+    Some(RawLecture {
+    order: Some("1".into()),
+    group_name: Some("Ир5-21".into()),
+    subgroup: Some("1".into()),
+    name: Some("МДК 08.02".into()),
+    teacher: Some("Маркова М.А.".into()),
+    classroom: Some("211М".into())
+  }))]
+  #[case(
+    vec!["Ир5-21".to_string(), "1".to_string(), "2 п/г МДК 08.02, Маркова М.А., 211М".to_string()], 
+    Some(RawLecture {
+    order: Some("1".into()),
+    group_name: Some("Ир5-21".into()),
+    subgroup: Some("2".into()),
+    name: Some("МДК 08.02".into()),
+    teacher: Some("Маркова М.А.".into()),
+    classroom: Some("211М".into())
+  }))]
+  #[case(
+    vec!["".to_string(), "1".to_string(), "2 п/г МДК 08.02, Маркова М.А., 211М".to_string()], 
+    Some(RawLecture {
+    order: Some("1".into()),
+    group_name: None,
+    subgroup: Some("2".into()),
+    name: Some("МДК 08.02".into()),
+    teacher: Some("Маркова М.А.".into()),
+    classroom: Some("211М".into())
+  }))]
+  #[case(
+    vec!["".to_string(), "1".to_string(), "2 п/г МДК 08.02, Маркова М.А.".to_string()], 
+    Some(RawLecture {
+    order: Some("1".into()),
+    group_name: None,
+    subgroup: Some("2".into()),
+    name: Some("МДК 08.02".into()),
+    teacher: Some("Маркова М.А.".into()),
+    classroom: None
+  }))]
+  #[case(
+    vec!["q234".to_string(), "as".to_string()],
+    None
+  )]
+  fn parse_raw_lecture(#[case] input: Vec<String>, #[case] expected: Option<RawLecture>) {
+    assert_eq!(expected, RawLecture::parse_from_row(input))
   }
 }

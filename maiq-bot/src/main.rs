@@ -9,7 +9,7 @@ async fn main() {
   let pool = maiq_db::pool().await.expect("unable to setup db");
   let parser = maiq_bot::setup_parser().expect("unable to setup parser");
 
-  #[cfg(profile = "release")]
+  #[cfg(not(debug_assertions))]
   tokio::time::sleep(std::time::Duration::from_secs(2)).await;
 
   let bot = maiq_bot::setup_bot().await.expect("unable to setup bot");
