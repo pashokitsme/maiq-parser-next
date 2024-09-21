@@ -56,7 +56,12 @@ impl SnapshotParserAgent for SnapshotParser4 {
     let date = parse_date(&mut rows).unwrap_or(self.fallback_date);
     let is_week_even = date.iso_week().week0() % 2 == 0;
 
-    let raw_lectures = self.parse_raw_lectures(rows.skip(1).peekable());
+    let raw_lectures = self.parse_raw_lectures(
+      rows
+        .skip(1)
+        .flat_map(|row| row.chunks(3).map(|chunk| chunk.to_vec()).collect::<Vec<_>>())
+        .peekable(),
+    );
     let mut groups = self.assign_to_groups(raw_lectures.into_iter(), is_week_even);
     groups.retain(|g| g.has_lectures());
     Snapshot::new(date, groups)
