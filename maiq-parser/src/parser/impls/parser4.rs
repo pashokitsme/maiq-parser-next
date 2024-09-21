@@ -1,6 +1,3 @@
-use std::fmt::Display;
-use std::iter::Peekable;
-
 use crate::parser::SnapshotParserAgent;
 
 use crate::parser::default_lectures::*;
@@ -8,15 +5,6 @@ use crate::parser::parse_date::*;
 use crate::parser::table::*;
 use crate::snapshot::*;
 use crate::utils::time::*;
-
-macro_rules! empty_to_none {
-  ($e: expr) => {
-    match $e {
-      Some(x) if !x.is_empty() => Some(x.into()),
-      _ => None,
-    }
-  };
-}
 
 const PREVIOUS_ORDER_PLACEHOLDER: &str = "-1";
 
@@ -65,11 +53,24 @@ impl SnapshotParserAgent for SnapshotParser4 {
 
 impl SnapshotParser4 {
   fn parse_raw_lectures<I: Iterator<Item = Vec<String>>>(&self, rows: I) -> Vec<RawLecture> {
-    let mut raw_lectures = vec![];
+    let mut left = vec![];
+    let mut right = vec![];
 
-    todo!();
+    for row in rows.into_iter().skip(1) {
+      let mut chunks = row.chunks(3);
+      if let Some(left_row) = chunks.next() {
+        left.push(left_row.to_vec());
+      }
+      if let Some(right_row) = chunks.next() {
+        right.push(right_row.to_vec());
+      }
+    }
 
-    raw_lectures
+    left
+      .into_iter()
+      .chain(right)
+      .filter_map(RawLecture::parse_from_row)
+      .collect()
   }
 
   fn assign_to_groups<I: Iterator<Item = RawLecture>>(self, lectures: I, is_week_even: bool) -> Vec<Group> {
@@ -83,9 +84,14 @@ impl SnapshotParser4 {
 
     lectures
       .map(|mut lecture| {
+        if lecture.group_name.is_none() {
+          lecture.group_name = prev.as_ref().and_then(|p| p.group_name.clone());
+        }
+
         if matches!(lecture.order.as_deref(), Some(PREVIOUS_ORDER_PLACEHOLDER)) {
           lecture.order = prev.as_ref().and_then(|p| p.order.clone())
         }
+
         prev = Some(lecture.clone());
         lecture
       })
@@ -93,11 +99,10 @@ impl SnapshotParser4 {
       .for_each(|lecture| {
         let group_name = lecture.group_name.as_deref().unwrap();
         let group = groups.iter_mut().find(|x| x.name() == group_name);
-        if group.is_none() {
-          return;
+        if let Some(group) = group {
+          let lectures = self.expand_raw_lecture(lecture, is_week_even);
+          group.push_lectures(lectures.into_iter());
         }
-        let lectures = self.expand_raw_lecture(lecture, is_week_even);
-        group.unwrap().push_lectures(lectures.into_iter());
       });
 
     groups.retain(|g| g.has_lectures());
@@ -157,6 +162,36 @@ impl SnapshotParser4 {
         )
       })
       .collect()
+  }
+}
+
+impl RawLecture {
+  pub fn parse_from_row(row: Vec<String>) -> Option<Self> {
+    let mut row = row.into_iter();
+    let group_name = row.next().take_if(|name| !name.is_empty());
+    let order = row.next().take_if(|order| !order.is_empty())?;
+
+    let subgroup_name_teacher_classroom = row.next().take_if(|s| !s.is_empty())?;
+
+    let (subgroup, name_teacher_classroom) = subgroup_name_teacher_classroom
+      .split_once("п/г")
+      .unwrap_or(("", subgroup_name_teacher_classroom.as_str()));
+
+    let subgroup = Some(subgroup).take_if(|s| !s.is_empty());
+
+    let mut name_teacher_classroom = name_teacher_classroom.split(',');
+    let lecture_name = name_teacher_classroom.next()?.trim();
+    let teacher = name_teacher_classroom.next().map(|s| s.trim());
+    let classroom = name_teacher_classroom.next().map(|s| s.trim());
+
+    Some(Self {
+      order: Some(order.into()),
+      group_name: group_name.map(Box::from),
+      name: Some(lecture_name.into()),
+      teacher: teacher.map(Box::from),
+      classroom: classroom.map(Box::from),
+      subgroup: subgroup.map(Box::from),
+    })
   }
 }
 
