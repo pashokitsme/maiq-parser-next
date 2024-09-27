@@ -87,7 +87,8 @@ impl Callbacks for Handler {
     let mut user = self.user().await;
     let config = user.config_mut();
     config.set_is_notifies_enabled(!config.is_notifies_enabled());
-    self.user().await.update(&self.pool).await?;
+    user.update(&self.pool).await?;
+    drop(user);
     self.answer().await?;
     self.show_config().await?;
     Ok(())
