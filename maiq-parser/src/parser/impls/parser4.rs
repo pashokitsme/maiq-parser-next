@@ -179,7 +179,7 @@ impl RawLecture {
 
     let (subgroup, name_teacher_classroom) = subgroup_name_teacher_classroom
       .split_once("п/г")
-      .map(|(subgroup, rest)| (subgroup.trim(), rest.trim()))
+      .map(|(subgroup, rest)| (subgroup.trim(), rest.trim().trim_start_matches(',')))
       .unwrap_or(("", subgroup_name_teacher_classroom.as_str()));
 
     let subgroup = Some(subgroup).take_if(|s| !s.is_empty());
