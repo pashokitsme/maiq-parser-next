@@ -43,7 +43,7 @@ impl SnapshotParserAgent for SnapshotParser4 {
   }
 
   fn parse(self, table: Table) -> Snapshot {
-    let mut rows = table.rows.into_iter();
+    let mut rows = table.rows.into_iter().skip(1);
     let date = parse_date(&mut rows).unwrap_or(self.fallback_date);
     let is_week_even = date.iso_week().week0() % 2 == 0;
 
